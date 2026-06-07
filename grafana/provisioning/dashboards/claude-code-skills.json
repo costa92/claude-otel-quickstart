@@ -1,0 +1,260 @@
+{
+  "title": "Claude Code - Skills",
+  "uid": "claude-code-skills",
+  "tags": [
+    "claude-code",
+    "skills"
+  ],
+  "timezone": "browser",
+  "schemaVersion": 39,
+  "version": 1,
+  "refresh": "10s",
+  "time": {
+    "from": "now-1h",
+    "to": "now"
+  },
+  "templating": {
+    "list": [
+      {
+        "name": "team",
+        "type": "query",
+        "datasource": {
+          "type": "prometheus",
+          "uid": "prom-claude-code"
+        },
+        "query": "label_values(claude_code_cost_usage_USD_total, team)",
+        "refresh": 2,
+        "includeAll": true,
+        "multi": true,
+        "current": {
+          "text": "All",
+          "value": "$__all"
+        }
+      }
+    ]
+  },
+  "panels": [
+    {
+      "id": 1,
+      "type": "stat",
+      "title": "Total Skill Calls (1h)",
+      "description": "Loki 里 tool_name='Skill' 的事件数。Claude 2.1.153 实测: skill_name 不在 Prom metric 里,只在这里能看到具体 skill 名",
+      "datasource": {
+        "type": "loki",
+        "uid": "loki-claude-code"
+      },
+      "gridPos": {
+        "x": 0,
+        "y": 0,
+        "w": 6,
+        "h": 5
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "expr": "sum by (tool_name) (count_over_time({service_name=\"claude-code\"} |= `tool_result` [1h]))",
+          "legendFormat": "{{tool_name}}"
+        }
+      ],
+      "options": {
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ]
+        },
+        "colorMode": "value",
+        "graphMode": "area",
+        "textMode": "value_and_name"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "unit": "short"
+        },
+        "overrides": [
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "Skill"
+            },
+            "properties": [
+              {
+                "id": "color",
+                "value": {
+                  "mode": "fixed",
+                  "fixedColor": "green"
+                }
+              },
+              {
+                "id": "custom.displayMode",
+                "value": "color-background"
+              }
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "id": 2,
+      "type": "stat",
+      "title": "Total Tool Calls (1h, all types)",
+      "description": "1h 内所有 tool_result 事件数(不分类型)。Skills page 的总调用量基线",
+      "datasource": {
+        "type": "loki",
+        "uid": "loki-claude-code"
+      },
+      "gridPos": {
+        "x": 6,
+        "y": 0,
+        "w": 6,
+        "h": 5
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "expr": "sum(count_over_time({service_name=\"claude-code\"} |= `tool_result` [1h]))"
+        }
+      ],
+      "options": {
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ]
+        },
+        "colorMode": "value",
+        "graphMode": "area"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "unit": "short"
+        }
+      }
+    },
+    {
+      "id": 3,
+      "type": "stat",
+      "title": "MCP Tool Calls (1h)",
+      "description": "tool_name='mcp_tool' 事件数(对比 Skill 看占比)。MCP 详情见 Claude Code - MCP Servers 页",
+      "datasource": {
+        "type": "loki",
+        "uid": "loki-claude-code"
+      },
+      "gridPos": {
+        "x": 12,
+        "y": 0,
+        "w": 6,
+        "h": 5
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "expr": "sum by (tool_name) (count_over_time({service_name=\"claude-code\"} |= `tool_result` [1h]))",
+          "legendFormat": "{{tool_name}}"
+        }
+      ],
+      "options": {
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ]
+        },
+        "colorMode": "value",
+        "graphMode": "area",
+        "textMode": "value_and_name"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "unit": "short"
+        },
+        "overrides": [
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "mcp_tool"
+            },
+            "properties": [
+              {
+                "id": "color",
+                "value": {
+                  "mode": "fixed",
+                  "fixedColor": "blue"
+                }
+              },
+              {
+                "id": "custom.displayMode",
+                "value": "color-background"
+              }
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "id": 4,
+      "type": "stat",
+      "title": "Skill Category Tokens (Prom, 仅分类)",
+      "description": "Claude 2.1.153 实测: Prom 端 skill_name 永远是 'third-party' 一个值,这是分类标签,不是具体 skill 名",
+      "datasource": {
+        "type": "prometheus",
+        "uid": "prom-claude-code"
+      },
+      "gridPos": {
+        "x": 18,
+        "y": 0,
+        "w": 6,
+        "h": 5
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "expr": "sum(claude_code_token_usage_tokens_total{skill_name!=\"\",team=~\"$team\"})"
+        }
+      ],
+      "options": {
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ]
+        },
+        "colorMode": "value",
+        "graphMode": "area"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "unit": "short"
+        }
+      }
+    },
+    {
+      "id": 5,
+      "type": "logs",
+      "title": "Recent Skill Invocations (raw stream)",
+      "description": "Skill 工具调用的原始事件。展开 row 看 tool_parameters.skill_name 这个 JSON label (像 'superpowers:using-superpowers')",
+      "datasource": {
+        "type": "loki",
+        "uid": "loki-claude-code"
+      },
+      "gridPos": {
+        "x": 0,
+        "y": 5,
+        "w": 24,
+        "h": 14
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "expr": "{service_name=\"claude-code\"} |= `tool_result`",
+          "legendFormat": "{{tool_name}}"
+        }
+      ],
+      "options": {
+        "showTime": true,
+        "showLabels": true,
+        "sortOrder": "Descending",
+        "wrapLogMessage": true,
+        "showCommonLabels": false,
+        "prettifyLogMessage": true,
+        "dedupStrategy": "none"
+      }
+    }
+  ]
+}

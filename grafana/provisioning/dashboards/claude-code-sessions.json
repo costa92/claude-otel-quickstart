@@ -1,0 +1,444 @@
+{
+  "title": "Claude Code - Sessions",
+  "uid": "claude-code-sessions",
+  "tags": [
+    "claude-code",
+    "sessions"
+  ],
+  "timezone": "browser",
+  "schemaVersion": 39,
+  "version": 1,
+  "refresh": "10s",
+  "links": [
+    {
+      "title": "User Prompts (\u4e8c\u7ea7\u9875\u9762) \u2192",
+      "url": "/d/claude-code-user-prompts/claude-code-user-prompts",
+      "type": "link",
+      "icon": "external link",
+      "includeVars": false,
+      "keepTime": true,
+      "targetBlank": false
+    }
+  ],
+  "time": {
+    "from": "now-1h",
+    "to": "now"
+  },
+  "templating": {
+    "list": [
+      {
+        "name": "process",
+        "type": "query",
+        "datasource": {
+          "type": "loki",
+          "uid": "loki-claude-code"
+        },
+        "query": "{service_name=\"claude-code\"} |= `plugin_loaded`",
+        "refresh": 2,
+        "includeAll": true,
+        "multi": true,
+        "current": {
+          "text": "All",
+          "value": "$__all"
+        }
+      }
+    ]
+  },
+  "panels": [
+    {
+      "id": 1,
+      "type": "stat",
+      "title": "Total Sessions (1h)",
+      "description": "1h \u5185 plugin_loaded \u4e8b\u4ef6\u6570 = \u542f\u4e86\u51e0\u4e2a\u72ec\u7acb claude session(\u6bcf\u4e2a claude \u542f\u52a8\u53d1 1 \u4e2a)",
+      "datasource": {
+        "type": "loki",
+        "uid": "loki-claude-code"
+      },
+      "gridPos": {
+        "x": 0,
+        "y": 0,
+        "w": 6,
+        "h": 5
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "expr": "sum(count_over_time({service_name=\"claude-code\"} |= `plugin_loaded` | line_format `process_pid={{.process_pid}}` |~ `process_pid=$process` [1h]))"
+        }
+      ],
+      "options": {
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ]
+        },
+        "colorMode": "value",
+        "graphMode": "area"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "unit": "short"
+        }
+      }
+    },
+    {
+      "id": 2,
+      "type": "stat",
+      "title": "Top User (1h, by sessions)",
+      "description": "1h \u5185\u542f session \u6700\u591a\u7684 user\u3002\u8981\u770b\u5b8c\u6574 unique \u6570\u6539\u6210 topk(20, sum by (user_email) (count_over_time(...)))",
+      "datasource": {
+        "type": "loki",
+        "uid": "loki-claude-code"
+      },
+      "gridPos": {
+        "x": 6,
+        "y": 0,
+        "w": 6,
+        "h": 5
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "expr": "topk(1, sum by (user_email) (count_over_time({service_name=\"claude-code\"} |= `plugin_loaded` | line_format `process_pid={{.process_pid}}` |~ `process_pid=$process` [1h])))",
+          "legendFormat": "{{user_email}}"
+        }
+      ],
+      "options": {
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ]
+        },
+        "colorMode": "value",
+        "graphMode": "area",
+        "textMode": "value_and_name"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "unit": "short"
+        }
+      }
+    },
+    {
+      "id": 3,
+      "type": "stat",
+      "title": "Top Device (1h)",
+      "description": "1h \u5185\u6700\u5e38\u7528\u7684\u8bbe\u5907(arch+os+version \u7ec4\u5408)\u3002\u8981\u7ec6\u5230 host.name \u9700\u8bbe OTEL_RESOURCE_ATTRIBUTES",
+      "datasource": {
+        "type": "loki",
+        "uid": "loki-claude-code"
+      },
+      "gridPos": {
+        "x": 12,
+        "y": 0,
+        "w": 6,
+        "h": 5
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "expr": "topk(1, sum by (host_arch, os_type, os_version) (count_over_time({service_name=\"claude-code\"} |= `plugin_loaded` | line_format `process_pid={{.process_pid}}` |~ `process_pid=$process` [1h])))",
+          "legendFormat": "{{host_arch}} {{os_type}} {{os_version}}"
+        }
+      ],
+      "options": {
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ]
+        },
+        "colorMode": "value",
+        "graphMode": "area",
+        "textMode": "value_and_name"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "unit": "short"
+        }
+      }
+    },
+    {
+      "id": 4,
+      "type": "stat",
+      "title": "Top Claude Version (1h)",
+      "description": "1h \u5185\u56e2\u961f\u4e3b\u8981\u7528\u7684 Claude \u7248\u672c",
+      "datasource": {
+        "type": "loki",
+        "uid": "loki-claude-code"
+      },
+      "gridPos": {
+        "x": 18,
+        "y": 0,
+        "w": 6,
+        "h": 5
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "expr": "topk(1, sum by (service_version) (count_over_time({service_name=\"claude-code\"} |= `plugin_loaded` | line_format `process_pid={{.process_pid}}` |~ `process_pid=$process` [1h])))",
+          "legendFormat": "v{{service_version}}"
+        }
+      ],
+      "options": {
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ]
+        },
+        "colorMode": "value",
+        "graphMode": "area",
+        "textMode": "value_and_name"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "unit": "short"
+        }
+      }
+    },
+    {
+      "id": 5,
+      "type": "table",
+      "title": "Sessions List (plugin_loaded, 1h)",
+      "description": "\u6bcf\u4e2a session \u4e00\u884c(plugin_loaded \u4e8b\u4ef6 = 1 \u4e2a claude \u542f\u52a8),\u5217: Started / Plugin ID / User / Arch / OS / OS Ver / Claude / Terminal / Process / Scope\u3002process \u6765\u81ea OTEL_RESOURCE_ATTRIBUTES.process.pid(\u901a\u8fc7 otel-collector transform processor \u5347\u5230 stream label)\u3002Loki 3.3 structured metadata \u4e0d\u80fd\u76f4\u63a5\u62c6\u5217,\u5148\u7528 line_format \u8f93\u51fa JSON \u5230 Line,\u518d\u7528 Extract fields \u62c6\u3002",
+      "datasource": {
+        "type": "loki",
+        "uid": "loki-claude-code"
+      },
+      "gridPos": {
+        "x": 0,
+        "y": 5,
+        "w": 24,
+        "h": 14
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "expr": "{service_name=\"claude-code\"} | event_name=\"plugin_loaded\" | line_format `{\"started_at\": \"{{.event_timestamp}}\", \"session_id\": \"{{.plugin_id_hash}}\", \"user_id\": \"{{.user_id}}\", \"process\": \"{{.process_pid}}\", \"arch\": \"{{.host_arch}}\", \"os\": \"{{.os_type}}\", \"os_ver\": \"{{.os_version}}\", \"claude\": \"v{{.service_version}}\", \"terminal\": \"{{.terminal_type}}\", \"scope\": \"{{.plugin_scope}}\", \"host\": \"{{.host_name}}\", \"cwd\": \"{{.process_executable_path}}\"}`"
+        }
+      ],
+      "options": {
+        "showTime": false,
+        "showLabels": false,
+        "sortOrder": "Descending",
+        "wrapLogMessage": false,
+        "prettifyLogMessage": false
+      },
+      "transformations": [
+        {
+          "id": "extractFields",
+          "options": {
+            "source": "Line",
+            "format": "json",
+            "replaceSpaceWith": "",
+            "trim": true,
+            "keepTime": false
+          }
+        },
+        {
+          "id": "organize",
+          "options": {
+            "excludeByName": {
+              "Line": true,
+              "labels": true,
+              "tsNs": true,
+              "labelTypes": true,
+              "id": true,
+              "event_timestamp": true,
+              "started": true,
+              "Time": true
+            },
+            "renameByName": {
+              "started_at": "Started",
+              "session_id": "Plugin ID",
+              "plugin_scope": "Scope",
+              "scope": "Scope"
+            },
+            "indexByName": {
+              "started_at": 0,
+              "session_id": 1,
+              "user_id": 2,
+              "arch": 3,
+              "os": 4,
+              "os_ver": 5,
+              "claude": 6,
+              "terminal": 7,
+              "process": 9,
+              "scope": 9
+            }
+          }
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "custom": {
+            "align": "left"
+          }
+        },
+        "overrides": [
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "started_at"
+            },
+            "properties": [
+              {
+                "id": "custom.width",
+                "value": 220
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "session_id"
+            },
+            "properties": [
+              {
+                "id": "custom.width",
+                "value": 290
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "user_id"
+            },
+            "properties": [
+              {
+                "id": "custom.width",
+                "value": 80
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "arch"
+            },
+            "properties": [
+              {
+                "id": "custom.width",
+                "value": 70
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "os"
+            },
+            "properties": [
+              {
+                "id": "custom.width",
+                "value": 70
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "os_ver"
+            },
+            "properties": [
+              {
+                "id": "custom.width",
+                "value": 80
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "claude"
+            },
+            "properties": [
+              {
+                "id": "custom.width",
+                "value": 80
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "terminal"
+            },
+            "properties": [
+              {
+                "id": "custom.width",
+                "value": 80
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "plugin_scope"
+            },
+            "properties": [
+              {
+                "id": "custom.width",
+                "value": 110
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "process"
+            },
+            "properties": [
+              {
+                "id": "custom.width",
+                "value": 80
+              },
+              {
+                "id": "links",
+                "value": [
+                  {
+                    "title": "View prompts for session ${__data.fields.process} →",
+                    "url": "/d/claude-code-sessions-prompts/claude-code-user-prompts?var-process=${__data.fields.process}&from=${__data.fields.started_at}",
+                    "targetBlank": false
+                  }
+                ]
+              }
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "id": 6,
+      "type": "logs",
+      "title": "Recent User Prompts (raw stream)",
+      "description": "\u5c55\u5f00\u770b\u6bcf\u6761 user_prompt \u4e8b\u4ef6\u7684\u5177\u4f53 prompt_id, \u53ef\u5173\u8054\u5230\u4e0a\u9762 table",
+      "datasource": {
+        "type": "loki",
+        "uid": "loki-claude-code"
+      },
+      "gridPos": {
+        "x": 0,
+        "y": 17,
+        "w": 24,
+        "h": 12
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "expr": "{service_name=\"claude-code\"} |= `user_prompt`",
+          "legendFormat": "{{user_email}}"
+        }
+      ],
+      "options": {
+        "showTime": true,
+        "showLabels": true,
+        "sortOrder": "Descending",
+        "wrapLogMessage": true,
+        "showCommonLabels": false,
+        "prettifyLogMessage": true,
+        "dedupStrategy": "none"
+      }
+    }
+  ]
+}

@@ -1,0 +1,15 @@
+# 注意: 不设 translation_strategy,用 Prometheus 默认 UnderscoreEscapingWithSuffixes
+#   - OTel 名里 . → _
+#   - counter 自动加 _total
+#   - 带单位的 metric 自动加单位后缀 (token.usage → token_usage_tokens_total)
+otlp:
+  promote_resource_attributes:
+    - service.name
+    - service.instance.id
+    - team
+    - user.email
+  keep_identifying_resource_attributes: true
+
+storage:
+  tsdb:
+    out_of_order_time_window: 30m

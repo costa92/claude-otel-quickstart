@@ -1,0 +1,325 @@
+{
+  "title": "Claude Code - Agents (Subagents)",
+  "uid": "claude-code-agents",
+  "tags": [
+    "claude-code",
+    "agents",
+    "subagent"
+  ],
+  "timezone": "browser",
+  "schemaVersion": 39,
+  "version": 1,
+  "refresh": "10s",
+  "time": {
+    "from": "now-1h",
+    "to": "now"
+  },
+  "templating": {
+    "list": [
+      {
+        "name": "team",
+        "type": "query",
+        "datasource": {
+          "type": "prometheus",
+          "uid": "prom-claude-code"
+        },
+        "query": "label_values(claude_code_cost_usage_USD_total, team)",
+        "refresh": 2,
+        "includeAll": true,
+        "multi": true,
+        "current": {
+          "text": "All",
+          "value": "$__all"
+        }
+      }
+    ]
+  },
+  "panels": [
+    {
+      "id": 1,
+      "type": "stat",
+      "title": "Total Subagent Calls (1h, Loki)",
+      "description": "Loki 里 tool_name='Agent' 的事件数,代表 Claude 派了子 agent 多少次",
+      "datasource": {
+        "type": "loki",
+        "uid": "loki-claude-code"
+      },
+      "gridPos": {
+        "x": 0,
+        "y": 0,
+        "w": 6,
+        "h": 5
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "expr": "sum by (tool_name) (count_over_time({service_name=\"claude-code\"} |= `tool_result` [1h]))",
+          "legendFormat": "{{tool_name}}"
+        }
+      ],
+      "options": {
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ]
+        },
+        "colorMode": "value",
+        "graphMode": "area",
+        "textMode": "value_and_name"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "unit": "short"
+        },
+        "overrides": [
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "Agent"
+            },
+            "properties": [
+              {
+                "id": "color",
+                "value": {
+                  "mode": "fixed",
+                  "fixedColor": "green"
+                }
+              },
+              {
+                "id": "custom.displayMode",
+                "value": "color-background"
+              }
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "id": 2,
+      "type": "stat",
+      "title": "Subagent Tokens",
+      "description": "claude_code_token_usage_tokens_total 里 agent_name != '' 的 token 总和",
+      "datasource": {
+        "type": "prometheus",
+        "uid": "prom-claude-code"
+      },
+      "gridPos": {
+        "x": 6,
+        "y": 0,
+        "w": 6,
+        "h": 5
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "expr": "sum(claude_code_token_usage_tokens_total{agent_name!=\"\",team=~\"$team\"})"
+        }
+      ],
+      "options": {
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ]
+        },
+        "colorMode": "value",
+        "graphMode": "area"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "unit": "short"
+        }
+      }
+    },
+    {
+      "id": 3,
+      "type": "stat",
+      "title": "Subagent Cost (USD)",
+      "description": "claude_code_cost_usage_USD_total 里 agent_name != '' 的成本",
+      "datasource": {
+        "type": "prometheus",
+        "uid": "prom-claude-code"
+      },
+      "gridPos": {
+        "x": 12,
+        "y": 0,
+        "w": 6,
+        "h": 5
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "expr": "sum(claude_code_cost_usage_USD_total{agent_name!=\"\",team=~\"$team\"})"
+        }
+      ],
+      "options": {
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ]
+        },
+        "colorMode": "value",
+        "graphMode": "area"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "unit": "currencyUSD",
+          "decimals": 4
+        }
+      }
+    },
+    {
+      "id": 4,
+      "type": "stat",
+      "title": "Top Subagent by Cost (USD, 1h)",
+      "description": "1h 内最烧钱的 subagent 类型。Prom 端 agent_name 是具体名(general-purpose / Explore / Plan / 自定义)",
+      "datasource": {
+        "type": "prometheus",
+        "uid": "prom-claude-code"
+      },
+      "gridPos": {
+        "x": 18,
+        "y": 0,
+        "w": 6,
+        "h": 5
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "expr": "topk(1, sum by (agent_name) (claude_code_cost_usage_USD_total{agent_name!=\"\", team=~\"$team\"}))",
+          "legendFormat": "{{agent_name}}"
+        }
+      ],
+      "options": {
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ]
+        },
+        "colorMode": "value",
+        "graphMode": "area",
+        "textMode": "value_and_name"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "unit": "currencyUSD",
+          "decimals": 4
+        }
+      }
+    },
+    {
+      "id": 5,
+      "type": "bargauge",
+      "title": "Tokens by Subagent (具体名)",
+      "description": "按 agent_name 拆 token(general-purpose / Explore / Plan / 自定义)。最能反映'哪些自定义 agent 真用了'",
+      "datasource": {
+        "type": "prometheus",
+        "uid": "prom-claude-code"
+      },
+      "gridPos": {
+        "x": 0,
+        "y": 5,
+        "w": 12,
+        "h": 8
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "expr": "sum by (agent_name) (claude_code_token_usage_tokens_total{agent_name!=\"\",team=~\"$team\"})",
+          "legendFormat": "{{agent_name}}"
+        }
+      ],
+      "options": {
+        "orientation": "horizontal",
+        "displayMode": "gradient",
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ]
+        },
+        "showUnfilled": true
+      },
+      "fieldConfig": {
+        "defaults": {
+          "unit": "short",
+          "color": {
+            "mode": "continuous-BlPu"
+          }
+        }
+      }
+    },
+    {
+      "id": 6,
+      "type": "bargauge",
+      "title": "Cost by Subagent (USD)",
+      "description": "按 subagent 拆成本,看哪个 subagent 在烧钱",
+      "datasource": {
+        "type": "prometheus",
+        "uid": "prom-claude-code"
+      },
+      "gridPos": {
+        "x": 12,
+        "y": 5,
+        "w": 12,
+        "h": 8
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "expr": "sum by (agent_name) (claude_code_cost_usage_USD_total{agent_name!=\"\",team=~\"$team\"})",
+          "legendFormat": "{{agent_name}}"
+        }
+      ],
+      "options": {
+        "orientation": "horizontal",
+        "displayMode": "gradient",
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ]
+        },
+        "showUnfilled": true
+      },
+      "fieldConfig": {
+        "defaults": {
+          "unit": "currencyUSD",
+          "decimals": 4,
+          "color": {
+            "mode": "continuous-YlRd"
+          }
+        }
+      }
+    },
+    {
+      "id": 7,
+      "type": "logs",
+      "title": "Recent Subagent Invocations (raw stream)",
+      "description": "Agent 工具调用的原始事件。tool_name='Agent', 详细参数在 tool_input JSON label 里",
+      "datasource": {
+        "type": "loki",
+        "uid": "loki-claude-code"
+      },
+      "gridPos": {
+        "x": 0,
+        "y": 13,
+        "w": 24,
+        "h": 14
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "expr": "{service_name=\"claude-code\"} |= `tool_result`",
+          "legendFormat": "{{tool_name}}"
+        }
+      ],
+      "options": {
+        "showTime": true,
+        "showLabels": true,
+        "sortOrder": "Descending",
+        "wrapLogMessage": true,
+        "showCommonLabels": false,
+        "prettifyLogMessage": true,
+        "dedupStrategy": "none"
+      }
+    }
+  ]
+}

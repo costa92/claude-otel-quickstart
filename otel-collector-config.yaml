@@ -1,0 +1,42 @@
+receivers:
+  otlp:
+    protocols:
+      http:
+        endpoint: 0.0.0.0:4318
+
+processors:
+  batch:
+    timeout: 2s
+    send_batch_size: 1000
+  # 把 OTel resource attributes 复制到 log attributes,
+  # 这样 Loki 的 structured metadata 才有 process.pid / host.name 等
+  transform/logs:
+    error_mode: ignore
+    log_statements:
+      - context: log
+        statements:
+          - 'set(attributes["process.pid"], resource.attributes["process.pid"])'
+
+exporters:
+  # metrics → Prometheus 原生 OTLP receive
+  otlphttp/prometheus:
+    endpoint: http://prometheus:9090/api/v1/otlp
+    tls:
+      insecure: true
+  # logs → Loki 原生 OTLP receive (用 http+json,实测 protobuf 在 Loki 3.3 静默 drop)
+  otlphttp/loki:
+    endpoint: http://loki:3100/otlp
+    encoding: json
+    tls:
+      insecure: true
+
+service:
+  pipelines:
+    metrics:
+      receivers: [otlp]
+      processors: [batch]
+      exporters: [otlphttp/prometheus]
+    logs:
+      receivers: [otlp]
+      processors: [transform/logs, batch]
+      exporters: [otlphttp/loki]

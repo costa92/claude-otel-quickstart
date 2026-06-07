@@ -1,0 +1,323 @@
+{
+  "title": "Claude Code - MCP Servers",
+  "uid": "claude-code-mcp",
+  "tags": [
+    "claude-code",
+    "mcp"
+  ],
+  "timezone": "browser",
+  "schemaVersion": 39,
+  "version": 1,
+  "refresh": "10s",
+  "time": {
+    "from": "now-1h",
+    "to": "now"
+  },
+  "templating": {
+    "list": [
+      {
+        "name": "team",
+        "type": "query",
+        "datasource": {
+          "type": "prometheus",
+          "uid": "prom-claude-code"
+        },
+        "query": "label_values(claude_code_cost_usage_USD_total, team)",
+        "refresh": 2,
+        "includeAll": true,
+        "multi": true,
+        "current": {
+          "text": "All",
+          "value": "$__all"
+        }
+      }
+    ]
+  },
+  "panels": [
+    {
+      "id": 1,
+      "type": "stat",
+      "title": "MCP Server Connections (1h)",
+      "description": "Loki mcp_server_connection 事件数,代表 Claude 启动了 stdio 握手多少次",
+      "datasource": {
+        "type": "loki",
+        "uid": "loki-claude-code"
+      },
+      "gridPos": {
+        "x": 0,
+        "y": 0,
+        "w": 6,
+        "h": 5
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "expr": "sum(count_over_time({service_name=\"claude-code\"} |= `mcp_server_connection` [1h]))"
+        }
+      ],
+      "options": {
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ]
+        },
+        "colorMode": "value",
+        "graphMode": "area"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "unit": "short"
+        }
+      }
+    },
+    {
+      "id": 2,
+      "type": "stat",
+      "title": "MCP Tool Calls (1h)",
+      "description": "tool_name='mcp_tool' 事件数。Claude 2.1.153 真实 server/tool 在 tool_parameters JSON label 里",
+      "datasource": {
+        "type": "loki",
+        "uid": "loki-claude-code"
+      },
+      "gridPos": {
+        "x": 6,
+        "y": 0,
+        "w": 6,
+        "h": 5
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "expr": "sum by (tool_name) (count_over_time({service_name=\"claude-code\"} |= `tool_result` [1h]))",
+          "legendFormat": "{{tool_name}}"
+        }
+      ],
+      "options": {
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ]
+        },
+        "colorMode": "value",
+        "graphMode": "area",
+        "textMode": "value_and_name"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "unit": "short"
+        },
+        "overrides": [
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "mcp_tool"
+            },
+            "properties": [
+              {
+                "id": "color",
+                "value": {
+                  "mode": "fixed",
+                  "fixedColor": "green"
+                }
+              },
+              {
+                "id": "custom.displayMode",
+                "value": "color-background"
+              }
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "id": 3,
+      "type": "stat",
+      "title": "Top MCP Server (1h)",
+      "description": "1h 内连接次数最多的 MCP server。注意: Claude 2.1.153 不会重复连同一个 server(连接是 lazy 的,常驻),所以'次数' ≈ 配置里的 server 数 × Claude 重启次数",
+      "datasource": {
+        "type": "loki",
+        "uid": "loki-claude-code"
+      },
+      "gridPos": {
+        "x": 12,
+        "y": 0,
+        "w": 6,
+        "h": 5
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "expr": "topk(1, sum by (server_name) (count_over_time({service_name=\"claude-code\"} |= `mcp_server_connection` [1h])))",
+          "legendFormat": "{{server_name}}"
+        }
+      ],
+      "options": {
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ]
+        },
+        "colorMode": "value",
+        "graphMode": "area",
+        "textMode": "value_and_name"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "unit": "short"
+        }
+      }
+    },
+    {
+      "id": 4,
+      "type": "stat",
+      "title": "Total MCP Cost (USD)",
+      "description": "所有 MCP 调用总成本。Claude 2.1.153 把绝大多数 MCP 调用的 mcp_server_name 都标 'custom' (实测),所以按 server 拆不出来,只能看总量",
+      "datasource": {
+        "type": "prometheus",
+        "uid": "prom-claude-code"
+      },
+      "gridPos": {
+        "x": 18,
+        "y": 0,
+        "w": 6,
+        "h": 5
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "expr": "sum(claude_code_cost_usage_USD_total{mcp_server_name!=\"\", team=~\"$team\"})"
+        }
+      ],
+      "options": {
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ]
+        },
+        "colorMode": "value",
+        "graphMode": "area"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "unit": "currencyUSD",
+          "decimals": 4
+        }
+      }
+    },
+    {
+      "id": 5,
+      "type": "bargauge",
+      "title": "MCP Server Connection Count (1h)",
+      "description": "按 server_name 拆连接次数。健康度指标: 反复连接 = 客户端在重启 MCP 进程,可能配置有问题",
+      "datasource": {
+        "type": "loki",
+        "uid": "loki-claude-code"
+      },
+      "gridPos": {
+        "x": 0,
+        "y": 5,
+        "w": 12,
+        "h": 8
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "expr": "sum by (server_name) (count_over_time({service_name=\"claude-code\"} |= `mcp_server_connection` [1h]))",
+          "legendFormat": "{{server_name}}"
+        }
+      ],
+      "options": {
+        "orientation": "horizontal",
+        "displayMode": "gradient",
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ]
+        },
+        "showUnfilled": true
+      },
+      "fieldConfig": {
+        "defaults": {
+          "unit": "short",
+          "color": {
+            "mode": "continuous-purples"
+          }
+        }
+      }
+    },
+    {
+      "id": 6,
+      "type": "bargauge",
+      "title": "MCP Cost (single 'custom' bucket, 2.1.153 limitation)",
+      "description": "Claude 2.1.153 实测: Prom 端 mcp_server_name 永远 = 'custom',不按 server 拆。换一个角度看 MCP 的成本:按 model 拆(mcp_tool 调用的主模型)或者按 user 拆",
+      "datasource": {
+        "type": "prometheus",
+        "uid": "prom-claude-code"
+      },
+      "gridPos": {
+        "x": 12,
+        "y": 5,
+        "w": 12,
+        "h": 8
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "expr": "sum by (mcp_tool_name) (claude_code_cost_usage_USD_total{mcp_server_name!=\"\", mcp_server_name=\"custom\", team=~\"$team\"})",
+          "legendFormat": "{{mcp_tool_name}}"
+        }
+      ],
+      "options": {
+        "orientation": "horizontal",
+        "displayMode": "gradient",
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ]
+        },
+        "showUnfilled": true
+      },
+      "fieldConfig": {
+        "defaults": {
+          "unit": "currencyUSD",
+          "decimals": 4,
+          "color": {
+            "mode": "continuous-YlRd"
+          }
+        }
+      }
+    },
+    {
+      "id": 7,
+      "type": "logs",
+      "title": "Recent MCP Tool Calls (raw stream)",
+      "description": "mcp_tool 调用的原始事件。展开 row 看 tool_parameters JSON label 拿 mcp_server_name + mcp_tool_name 真实值",
+      "datasource": {
+        "type": "loki",
+        "uid": "loki-claude-code"
+      },
+      "gridPos": {
+        "x": 0,
+        "y": 13,
+        "w": 24,
+        "h": 14
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "expr": "{service_name=\"claude-code\"} |= `tool_result`",
+          "legendFormat": "{{tool_name}}"
+        }
+      ],
+      "options": {
+        "showTime": true,
+        "showLabels": true,
+        "sortOrder": "Descending",
+        "wrapLogMessage": true,
+        "showCommonLabels": false,
+        "prettifyLogMessage": true,
+        "dedupStrategy": "none"
+      }
+    }
+  ]
+}
