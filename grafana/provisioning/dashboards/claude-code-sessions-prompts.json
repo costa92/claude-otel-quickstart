@@ -243,11 +243,6 @@
                     "targetBlank": false,
                     "title": "Prompt detail ${__value.text} →",
                     "url": "/d/claude-code-prompt-detail/claude-code-prompt-detail?var-prompt_id=${__value.text}&var-process=${__data.fields.Process}&from=${__from}&to=${__to}&refresh=10s"
-                  },
-                  {
-                    "title": "Trace (执行流程) →",
-                    "targetBlank": false,
-                    "url": "/d/claude-code-trace/claude-code-prompt-trace?var-prompt_id=${__data.fields[\"Prompt ID\"]}&var-process=${__data.fields.Process}&${__url_time_range}"
                   }
                 ]
               }
@@ -418,6 +413,16 @@
               {
                 "id": "custom.wrapText",
                 "value": true
+              },
+              {
+                "id": "links",
+                "value": [
+                  {
+                    "title": "Trace (执行流程) →",
+                    "targetBlank": false,
+                    "url": "/d/claude-code-trace/claude-code-prompt-trace?var-prompt_id=${__data.fields[\"Prompt ID\"]}&var-process=${__data.fields.Process}&${__url_time_range}"
+                  }
+                ]
               }
             ]
           }

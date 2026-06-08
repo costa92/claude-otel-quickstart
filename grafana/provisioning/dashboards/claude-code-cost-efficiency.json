@@ -846,7 +846,20 @@
                   {
                     "title": "拆解此 Prompt (Prompt Detail) →",
                     "url": "/d/claude-code-prompt-detail/claude-code-prompt-detail?var-prompt_id=${__data.fields[\"Prompt ID\"]}&var-process=${__data.fields.PID}&${__url_time_range}"
-                  },
+                  }
+                ]
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "PID"
+            },
+            "properties": [
+              {
+                "id": "links",
+                "value": [
                   {
                     "title": "Trace (执行流程) →",
                     "targetBlank": false,

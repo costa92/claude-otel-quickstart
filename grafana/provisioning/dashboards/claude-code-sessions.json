@@ -308,11 +308,6 @@
                     "title": "Prompt Detail (拆解) →",
                     "targetBlank": false,
                     "url": "/d/claude-code-prompt-detail/claude-code-prompt-detail?var-prompt_id=${__data.fields[\"Prompt ID\"]}&var-process=${__data.fields.process}&${__url_time_range}"
-                  },
-                  {
-                    "title": "Trace (执行流程) →",
-                    "targetBlank": false,
-                    "url": "/d/claude-code-trace/claude-code-prompt-trace?var-prompt_id=${__data.fields[\"Prompt ID\"]}&var-process=${__data.fields.process}&${__url_time_range}"
                   }
                 ]
               }
@@ -419,6 +414,24 @@
                     "title": "View prompts for session ${__data.fields.process} →",
                     "url": "/d/claude-code-sessions-prompts/claude-code-user-prompts?var-process=${__data.fields.process}&${__url_time_range}",
                     "targetBlank": false
+                  }
+                ]
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "Started"
+            },
+            "properties": [
+              {
+                "id": "links",
+                "value": [
+                  {
+                    "title": "Trace (执行流程) →",
+                    "targetBlank": false,
+                    "url": "/d/claude-code-trace/claude-code-prompt-trace?var-prompt_id=${__data.fields[\"Prompt ID\"]}&var-process=${__data.fields.process}&${__url_time_range}"
                   }
                 ]
               }
@@ -593,6 +606,16 @@
               {
                 "id": "custom.width",
                 "value": 300
+              },
+              {
+                "id": "links",
+                "value": [
+                  {
+                    "title": "Prompt Trace (本会话) →",
+                    "url": "/d/claude-code-trace/claude-code-prompt-trace?var-process=${__data.fields[\"PID\"]}&${__url_time_range}",
+                    "targetBlank": false
+                  }
+                ]
               }
             ]
           },
@@ -632,11 +655,6 @@
                   {
                     "title": "User Prompts (本会话) →",
                     "url": "/d/claude-code-sessions-prompts/claude-code-user-prompts?var-process=${__data.fields[\"PID\"]}&${__url_time_range}",
-                    "targetBlank": false
-                  },
-                  {
-                    "title": "Prompt Trace (本会话) →",
-                    "url": "/d/claude-code-trace/claude-code-prompt-trace?var-process=${__data.fields[\"PID\"]}&${__url_time_range}",
                     "targetBlank": false
                   }
                 ]
