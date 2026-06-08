@@ -38,9 +38,10 @@ services:
     ports:
       - "3000:3000"
     environment:
-      GF_SECURITY_ADMIN_PASSWORD: admin
-      GF_AUTH_ANONYMOUS_ENABLED: "true"
-      GF_AUTH_ANONYMOUS_ORG_ROLE: Viewer
+      GF_SECURITY_ADMIN_USER: ${GF_ADMIN_USER:-admin}
+      # 密码从宿主机环境变量读取,未设置时回退到 changeme — 请务必覆盖
+      GF_SECURITY_ADMIN_PASSWORD: ${GF_ADMIN_PASSWORD:-changeme}
+      GF_AUTH_ANONYMOUS_ENABLED: "false"
       GF_PLUGINS_PREINSTALL_DISABLED: "true"
     volumes:
       - ./grafana/provisioning:/etc/grafana/provisioning:ro

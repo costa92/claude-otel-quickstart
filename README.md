@@ -28,7 +28,15 @@ Claude Code ──OTLP/http──▶ OTel Collector ──┬─ metrics ─▶ 
 docker compose up -d
 ```
 
-打开 Grafana：<http://localhost:3000>（账号 `admin` / 密码 `admin`，已开启匿名 Viewer）。
+打开 Grafana：<http://localhost:3000>。需登录，默认账号 `admin`，密码取自宿主机环境
+变量 `GF_ADMIN_PASSWORD`（未设置时回退为 `changeme`，请务必覆盖）：
+
+```bash
+export GF_ADMIN_USER=admin
+export GF_ADMIN_PASSWORD=your-strong-password
+docker compose up -d
+```
+
 仪表盘在 **Claude Code** 文件夹下自动加载。
 
 ### 2. 让 Claude Code 上报遥测
