@@ -8,6 +8,15 @@
       "title": "Back to User Prompts",
       "type": "link",
       "url": "/d/claude-code-sessions-prompts/claude-code-user-prompts?var-process=${process}&from=${__from}&to=${__to}"
+    },
+    {
+      "icon": "external link",
+      "includeVars": true,
+      "keepTime": true,
+      "targetBlank": false,
+      "title": "⤵ View Trace Timeline (all events in order)",
+      "type": "link",
+      "url": "/d/claude-code-trace/claude-code-prompt-trace?var-prompt_id=${prompt_id}&var-process=${process}&from=${__from}&to=${__to}"
     }
   ],
   "panels": [
@@ -1163,7 +1172,7 @@
         "type": "loki",
         "uid": "loki-claude-code"
       },
-      "description": "当前 prompt 下的工具/Skill 调用。Request Params 优先展示 tool_parameters/tool_input/command/input；若当前 Claude telemetry 未上报参数正文，则显示 (not captured)，同时保留 Tool Input Size。",
+      "description": "当前 prompt 下的工具/Skill 调用。Request Params 同时展示 tool_parameters 和 tool_input(中间用 | input= 分隔),覆盖: Bash(命令+描述)、Read/Write/Edit(文件路径+limit)、Glob/Grep(pattern)、MCP(server.tool+query/params)、Skill(名称+trigger)。Claude 2.1.153 + OTEL_LOG_TOOL_DETAILS=1 实测四种 tool 都报这两个 attribute,除非都缺才 fallback 到 [metadata only]。",
       "fieldConfig": {
         "defaults": {
           "custom": {
@@ -1302,7 +1311,7 @@
       },
       "targets": [
         {
-          "expr": "{service_name=\"claude-code\"} | event_name=\"tool_result\" | prompt_id=\"$prompt_id\" | process_pid=~\"$process\" | line_format ` {\"at\":{{printf \"%q\" (date \"2006-01-02 15:04:05\" (unixToTime (printf \"%d\" (add 28800 (unixEpoch (toDate \"2006-01-02T15:04:05.000Z\" .event_timestamp))))))}},\"event\":\"tool_result\",\"tool\":{{printf \"%q\" .tool_name}},\"request_params\":{{if .tool_parameters}}{{printf \"%q\" .tool_parameters}}{{else if .tool_input}}{{printf \"%q\" .tool_input}}{{else if .command}}{{printf \"%q\" .command}}{{else if .input}}{{printf \"%q\" .input}}{{else}}\"(not captured)\"{{end}},\"param_status\":{{if or .tool_parameters .tool_input .command .input}}\"captured\"{{else}}\"not captured\"{{end}},\"success\":{{printf \"%q\" .success}},\"duration_ms\":{{.duration_ms}},\"input_bytes\":{{.tool_input_size_bytes}},\"result_bytes\":{{if .tool_result_size_bytes}}{{.tool_result_size_bytes}}{{else}}0{{end}},\"tool_use_id\":{{printf \"%q\" .tool_use_id}}}`",
+          "expr": "{service_name=\"claude-code\"} | event_name=\"tool_result\" | prompt_id=\"$prompt_id\" | process_pid=~\"$process\" | line_format ` {\"at\":{{printf \"%q\" (date \"2006-01-02 15:04:05\" (unixToTime (printf \"%d\" (add 28800 (unixEpoch (toDate \"2006-01-02T15:04:05.000Z\" .event_timestamp))))))}},\"event\":\"tool_result\",\"tool\":{{printf \"%q\" .tool_name}},\"request_params\":{{with .tool_parameters}}{{printf \"%q\" .}}{{end}}{{with .tool_input}}{{if not $.tool_parameters}}{{printf \"%q\" .}}{{else if ne $.tool_name \"Bash\"}} | input={{printf \"%q\" .}}{{end}}{{end}}{{if not (or .tool_parameters .tool_input)}}{{printf \"%q\" (printf \"[metadata only — no params in OTel stream] tool=%s | in=%sB | dur=%sms | ok=%s\" .tool_name .tool_input_size_bytes .duration_ms .success)}}{{end}},\"param_status\":{{if or .tool_parameters .tool_input}}\"captured\"{{else}}\"metadata only\"{{end}},\"success\":{{printf \"%q\" .success}},\"duration_ms\":{{.duration_ms}},\"input_bytes\":{{.tool_input_size_bytes}},\"result_bytes\":{{if .tool_result_size_bytes}}{{.tool_result_size_bytes}}{{else}}0{{end}},\"tool_use_id\":{{printf \"%q\" .tool_use_id}}}`",
           "refId": "A"
         },
         {

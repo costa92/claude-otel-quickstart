@@ -11,7 +11,7 @@
   "refresh": "10s",
   "links": [
     {
-      "title": "User Prompts (\u4e8c\u7ea7\u9875\u9762) \u2192",
+      "title": "User Prompts (二级页面) →",
       "url": "/d/claude-code-user-prompts/claude-code-user-prompts",
       "type": "link",
       "icon": "external link",
@@ -33,7 +33,7 @@
           "type": "loki",
           "uid": "loki-claude-code"
         },
-        "query": "{service_name=\"claude-code\"} |= `plugin_loaded`",
+        "query": "{service_name=\"claude-code\"} | event_name=\"user_prompt\"",
         "refresh": 2,
         "includeAll": true,
         "multi": true,
@@ -48,8 +48,8 @@
     {
       "id": 1,
       "type": "stat",
-      "title": "Total Sessions (1h)",
-      "description": "1h \u5185 plugin_loaded \u4e8b\u4ef6\u6570 = \u542f\u4e86\u51e0\u4e2a\u72ec\u7acb claude session(\u6bcf\u4e2a claude \u542f\u52a8\u53d1 1 \u4e2a)",
+      "title": "Active Prompts (1h)",
+      "description": "1h 内 user_prompt 事件数 = 发了多少次问。plugin_loaded 24h 才 3 条太稀疏,改用 user_prompt 让 5m/1h 窗口都有数据。",
       "datasource": {
         "type": "loki",
         "uid": "loki-claude-code"
@@ -63,7 +63,7 @@
       "targets": [
         {
           "refId": "A",
-          "expr": "sum(count_over_time({service_name=\"claude-code\"} |= `plugin_loaded` | line_format `process_pid={{.process_pid}}` |~ `process_pid=$process` [1h]))"
+          "expr": "sum(count_over_time({service_name=\"claude-code\"} | event_name=\"user_prompt\" | process_pid=~\"$process\" [1h]))"
         }
       ],
       "options": {
@@ -84,8 +84,8 @@
     {
       "id": 2,
       "type": "stat",
-      "title": "Top User (1h, by sessions)",
-      "description": "1h \u5185\u542f session \u6700\u591a\u7684 user\u3002\u8981\u770b\u5b8c\u6574 unique \u6570\u6539\u6210 topk(20, sum by (user_email) (count_over_time(...)))",
+      "title": "Top User (1h, by prompts)",
+      "description": "1h 内发问最多的 user (OTel SDK 发的是 user_id, 不是 user_email)。",
       "datasource": {
         "type": "loki",
         "uid": "loki-claude-code"
@@ -99,7 +99,7 @@
       "targets": [
         {
           "refId": "A",
-          "expr": "topk(1, sum by (user_email) (count_over_time({service_name=\"claude-code\"} |= `plugin_loaded` | line_format `process_pid={{.process_pid}}` |~ `process_pid=$process` [1h])))",
+          "expr": "topk(1, sum by (user_id) (count_over_time({service_name=\"claude-code\"} | event_name=\"user_prompt\" | process_pid=~\"$process\" [1h])))",
           "legendFormat": "{{user_email}}"
         }
       ],
@@ -122,8 +122,8 @@
     {
       "id": 3,
       "type": "stat",
-      "title": "Top Device (1h)",
-      "description": "1h \u5185\u6700\u5e38\u7528\u7684\u8bbe\u5907(arch+os+version \u7ec4\u5408)\u3002\u8981\u7ec6\u5230 host.name \u9700\u8bbe OTEL_RESOURCE_ATTRIBUTES",
+      "title": "Top Device (1h, by prompts)",
+      "description": "1h 内最常用的设备(arch+os+version)。要细到 host.name 需设 OTEL_RESOURCE_ATTRIBUTES。",
       "datasource": {
         "type": "loki",
         "uid": "loki-claude-code"
@@ -137,7 +137,7 @@
       "targets": [
         {
           "refId": "A",
-          "expr": "topk(1, sum by (host_arch, os_type, os_version) (count_over_time({service_name=\"claude-code\"} |= `plugin_loaded` | line_format `process_pid={{.process_pid}}` |~ `process_pid=$process` [1h])))",
+          "expr": "topk(1, sum by (host_arch, os_type, os_version) (count_over_time({service_name=\"claude-code\"} | event_name=\"user_prompt\" | process_pid=~\"$process\" [1h])))",
           "legendFormat": "{{host_arch}} {{os_type}} {{os_version}}"
         }
       ],
@@ -160,8 +160,8 @@
     {
       "id": 4,
       "type": "stat",
-      "title": "Top Claude Version (1h)",
-      "description": "1h \u5185\u56e2\u961f\u4e3b\u8981\u7528\u7684 Claude \u7248\u672c",
+      "title": "Top Claude Version (1h, by prompts)",
+      "description": "1h 内团队主要用的 Claude 版本。",
       "datasource": {
         "type": "loki",
         "uid": "loki-claude-code"
@@ -175,7 +175,7 @@
       "targets": [
         {
           "refId": "A",
-          "expr": "topk(1, sum by (service_version) (count_over_time({service_name=\"claude-code\"} |= `plugin_loaded` | line_format `process_pid={{.process_pid}}` |~ `process_pid=$process` [1h])))",
+          "expr": "topk(1, sum by (service_version) (count_over_time({service_name=\"claude-code\"} | event_name=\"user_prompt\" | process_pid=~\"$process\" [1h])))",
           "legendFormat": "v{{service_version}}"
         }
       ],
@@ -198,8 +198,8 @@
     {
       "id": 5,
       "type": "table",
-      "title": "Sessions List (plugin_loaded, 1h)",
-      "description": "\u6bcf\u4e2a session \u4e00\u884c(plugin_loaded \u4e8b\u4ef6 = 1 \u4e2a claude \u542f\u52a8),\u5217: Started / Plugin ID / User / Arch / OS / OS Ver / Claude / Terminal / Process / Scope\u3002process \u6765\u81ea OTEL_RESOURCE_ATTRIBUTES.process.pid(\u901a\u8fc7 otel-collector transform processor \u5347\u5230 stream label)\u3002Loki 3.3 structured metadata \u4e0d\u80fd\u76f4\u63a5\u62c6\u5217,\u5148\u7528 line_format \u8f93\u51fa JSON \u5230 Line,\u518d\u7528 Extract fields \u62c6\u3002",
+      "title": "User Prompts List (1h, with session metadata)",
+      "description": "1h 内每次 user_prompt 一行: Started / Prompt ID / User / Arch / OS / Claude / Terminal / Process / Len。plugin_loaded 24h 才 3 条,改用 user_prompt 让 5m/1h 都有数据。",
       "datasource": {
         "type": "loki",
         "uid": "loki-claude-code"
@@ -213,7 +213,7 @@
       "targets": [
         {
           "refId": "A",
-          "expr": "{service_name=\"claude-code\"} | event_name=\"plugin_loaded\" | line_format `{\"started_at\": \"{{.event_timestamp}}\", \"session_id\": \"{{.plugin_id_hash}}\", \"user_id\": \"{{.user_id}}\", \"process\": \"{{.process_pid}}\", \"arch\": \"{{.host_arch}}\", \"os\": \"{{.os_type}}\", \"os_ver\": \"{{.os_version}}\", \"claude\": \"v{{.service_version}}\", \"terminal\": \"{{.terminal_type}}\", \"scope\": \"{{.plugin_scope}}\", \"host\": \"{{.host_name}}\", \"cwd\": \"{{.process_executable_path}}\"}`"
+          "expr": "{service_name=\"claude-code\"} | event_name=\"user_prompt\" | process_pid=~\"$process\" | line_format `{\"started_at\": \"{{.event_timestamp}}\", \"prompt_id\": \"{{.prompt_id}}\", \"user_id\": \"{{.user_id}}\", \"process\": \"{{.process_pid}}\", \"arch\": \"{{.host arch}}\", \"os\": \"{{.os_type}}\", \"os_ver\": \"{{.os_version}}\", \"claude\": \"v{{.service_version}}\", \"terminal\": \"{{.terminal_type}}\", \"len\": \"{{.prompt_length}}\", \"cwd\": \"{{.process_executable_path}}\"}`"
         }
       ],
       "options": {
@@ -245,17 +245,16 @@
               "id": true,
               "event_timestamp": true,
               "started": true,
-              "Time": true
+              "Time": true,
+              "prompt": true
             },
             "renameByName": {
               "started_at": "Started",
-              "session_id": "Plugin ID",
-              "plugin_scope": "Scope",
-              "scope": "Scope"
+              "prompt_id": "Prompt ID",
+              "len": "Len"
             },
             "indexByName": {
               "started_at": 0,
-              "session_id": 1,
               "user_id": 2,
               "arch": 3,
               "os": 4,
@@ -263,7 +262,8 @@
               "claude": 6,
               "terminal": 7,
               "process": 9,
-              "scope": 9
+              "prompt_id": 1,
+              "len": 8
             }
           }
         }
@@ -290,7 +290,7 @@
           {
             "matcher": {
               "id": "byName",
-              "options": "session_id"
+              "options": "Prompt ID"
             },
             "properties": [
               {
@@ -398,7 +398,7 @@
                 "value": [
                   {
                     "title": "View prompts for session ${__data.fields.process} →",
-                    "url": "/d/claude-code-sessions-prompts/claude-code-user-prompts?var-process=${__data.fields.process}&from=${__data.fields.started_at}",
+                    "url": "/d/claude-code-sessions-prompts/claude-code-user-prompts?var-process=${__data.fields.process}&from=${__data.fields.started_at}&to=now",
                     "targetBlank": false
                   }
                 ]
@@ -412,7 +412,7 @@
       "id": 6,
       "type": "logs",
       "title": "Recent User Prompts (raw stream)",
-      "description": "\u5c55\u5f00\u770b\u6bcf\u6761 user_prompt \u4e8b\u4ef6\u7684\u5177\u4f53 prompt_id, \u53ef\u5173\u8054\u5230\u4e0a\u9762 table",
+      "description": "展开看每条 user_prompt 事件的具体 prompt_id, 可关联到上面 table",
       "datasource": {
         "type": "loki",
         "uid": "loki-claude-code"
@@ -426,7 +426,7 @@
       "targets": [
         {
           "refId": "A",
-          "expr": "{service_name=\"claude-code\"} |= `user_prompt`",
+          "expr": "{service_name=\"claude-code\"} | event_name=\"user_prompt\" | process_pid=~\"$process\"",
           "legendFormat": "{{user_email}}"
         }
       ],

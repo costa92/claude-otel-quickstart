@@ -9,6 +9,33 @@
       "title": "← Back to Sessions",
       "type": "link",
       "url": "/d/claude-code-sessions/claude-code-sessions?from=${__from}&to=${__to}"
+    },
+    {
+      "icon": "external link",
+      "includeVars": false,
+      "keepTime": true,
+      "targetBlank": false,
+      "title": "⤵ View Latest Trace (auto-pick newest prompt)",
+      "type": "link",
+      "url": "/d/claude-code-trace/claude-code-prompt-trace?var-process=${process}&from=${__from}&to=${__to}"
+    },
+    {
+      "icon": "external link",
+      "includeVars": false,
+      "keepTime": true,
+      "targetBlank": false,
+      "title": "↻ View All Processes (clear filter)",
+      "type": "link",
+      "url": "/d/claude-code-sessions-prompts/claude-code-user-prompts?from=${__from}&to=${__to}"
+    },
+    {
+      "icon": "external link",
+      "includeVars": false,
+      "keepTime": true,
+      "targetBlank": false,
+      "title": "⤵ View this process in Sessions",
+      "type": "link",
+      "url": "/d/claude-code-sessions/claude-code-sessions?var-process=${process}&from=${__from}&to=${__to}"
     }
   ],
   "panels": [
