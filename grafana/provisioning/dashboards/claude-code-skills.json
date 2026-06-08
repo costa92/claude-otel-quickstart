@@ -52,7 +52,7 @@
       "targets": [
         {
           "refId": "A",
-          "expr": "sum by (tool_name) (count_over_time({service_name=\"claude-code\"} |= `tool_result` [1h]))",
+          "expr": "sum(count_over_time({service_name=\"claude-code\"} | event_name=\"tool_result\" | tool_name=\"Skill\" [1h]))",
           "legendFormat": "{{tool_name}}"
         }
       ],
@@ -147,7 +147,7 @@
       "targets": [
         {
           "refId": "A",
-          "expr": "sum by (tool_name) (count_over_time({service_name=\"claude-code\"} |= `tool_result` [1h]))",
+          "expr": "sum(count_over_time({service_name=\"claude-code\"} | event_name=\"tool_result\" | tool_name=\"mcp_tool\" [1h]))",
           "legendFormat": "{{tool_name}}"
         }
       ],
@@ -242,7 +242,7 @@
       "targets": [
         {
           "refId": "A",
-          "expr": "{service_name=\"claude-code\"} |= `tool_result`",
+          "expr": "{service_name=\"claude-code\"} | event_name=\"tool_result\" | tool_name=\"Skill\"",
           "legendFormat": "{{tool_name}}"
         }
       ],
@@ -255,6 +255,20 @@
         "prettifyLogMessage": true,
         "dedupStrategy": "none"
       }
+    }
+  ],
+  "links": [
+    {
+      "asDropdown": true,
+      "icon": "apps",
+      "includeVars": true,
+      "keepTime": true,
+      "tags": [
+        "claude-code"
+      ],
+      "targetBlank": false,
+      "title": "📊 Claude Code 面板",
+      "type": "dashboards"
     }
   ]
 }

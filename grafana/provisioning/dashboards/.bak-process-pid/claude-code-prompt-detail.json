@@ -2,18 +2,6 @@
   "id": 8,
   "links": [
     {
-      "asDropdown": true,
-      "icon": "apps",
-      "includeVars": true,
-      "keepTime": true,
-      "tags": [
-        "claude-code"
-      ],
-      "targetBlank": false,
-      "title": "📊 Claude Code 面板",
-      "type": "dashboards"
-    },
-    {
       "icon": "arrow-left",
       "includeVars": false,
       "keepTime": true,
@@ -1323,7 +1311,7 @@
       },
       "targets": [
         {
-          "expr": "{service_name=\"claude-code\"} | event_name=\"tool_result\" | prompt_id=\"$prompt_id\" | process_pid=~\"$process\" | line_format ` {\"at\":{{printf \"%q\" (date \"2006-01-02 15:04:05\" (unixToTime (printf \"%d\" (add 28800 (unixEpoch (toDate \"2006-01-02T15:04:05.000Z\" .event_timestamp))))))}},\"event\":\"tool_result\",\"tool\":{{printf \"%q\" .tool_name}},\"request_params\":{{if .tool_parameters}}{{if (and .tool_input (ne .tool_name \"Bash\"))}}{{printf \"%q\" (printf \"%s | input=%s\" .tool_parameters .tool_input)}}{{else}}{{printf \"%q\" .tool_parameters}}{{end}}{{else if .tool_input}}{{printf \"%q\" .tool_input}}{{else}}{{printf \"%q\" (printf \"[metadata only — no params in OTel stream] tool=%s | in=%sB | dur=%sms | ok=%s\" .tool_name .tool_input_size_bytes .duration_ms .success)}}{{end}},\"param_status\":{{if or .tool_parameters .tool_input}}\"captured\"{{else}}\"metadata only\"{{end}},\"success\":{{printf \"%q\" .success}},\"duration_ms\":{{.duration_ms}},\"input_bytes\":{{.tool_input_size_bytes}},\"result_bytes\":{{if .tool_result_size_bytes}}{{.tool_result_size_bytes}}{{else}}0{{end}},\"tool_use_id\":{{printf \"%q\" .tool_use_id}}}`",
+          "expr": "{service_name=\"claude-code\"} | event_name=\"tool_result\" | prompt_id=\"$prompt_id\" | process_pid=~\"$process\" | line_format ` {\"at\":{{printf \"%q\" (date \"2006-01-02 15:04:05\" (unixToTime (printf \"%d\" (add 28800 (unixEpoch (toDate \"2006-01-02T15:04:05.000Z\" .event_timestamp))))))}},\"event\":\"tool_result\",\"tool\":{{printf \"%q\" .tool_name}},\"request_params\":{{with .tool_parameters}}{{printf \"%q\" .}}{{end}}{{with .tool_input}}{{if not $.tool_parameters}}{{printf \"%q\" .}}{{else if ne $.tool_name \"Bash\"}} | input={{printf \"%q\" .}}{{end}}{{end}}{{if not (or .tool_parameters .tool_input)}}{{printf \"%q\" (printf \"[metadata only — no params in OTel stream] tool=%s | in=%sB | dur=%sms | ok=%s\" .tool_name .tool_input_size_bytes .duration_ms .success)}}{{end}},\"param_status\":{{if or .tool_parameters .tool_input}}\"captured\"{{else}}\"metadata only\"{{end}},\"success\":{{printf \"%q\" .success}},\"duration_ms\":{{.duration_ms}},\"input_bytes\":{{.tool_input_size_bytes}},\"result_bytes\":{{if .tool_result_size_bytes}}{{.tool_result_size_bytes}}{{else}}0{{end}},\"tool_use_id\":{{printf \"%q\" .tool_use_id}}}`",
           "refId": "A"
         },
         {

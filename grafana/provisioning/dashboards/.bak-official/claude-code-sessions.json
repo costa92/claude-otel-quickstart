@@ -11,16 +11,13 @@
   "refresh": "10s",
   "links": [
     {
-      "asDropdown": true,
-      "icon": "apps",
-      "includeVars": true,
+      "title": "User Prompts (二级页面) →",
+      "url": "/d/claude-code-user-prompts/claude-code-user-prompts",
+      "type": "link",
+      "icon": "external link",
+      "includeVars": false,
       "keepTime": true,
-      "tags": [
-        "claude-code"
-      ],
-      "targetBlank": false,
-      "title": "📊 Claude Code 面板",
-      "type": "dashboards"
+      "targetBlank": false
     }
   ],
   "time": {
@@ -36,15 +33,14 @@
           "type": "loki",
           "uid": "loki-claude-code"
         },
-        "query": "sum by (process_pid) (count_over_time({service_name=\"claude-code\"} |= \"user_prompt\" | process_pid =~ \".+\" [$__range]))",
+        "query": "{service_name=\"claude-code\"} | event_name=\"user_prompt\"",
         "refresh": 2,
         "includeAll": true,
         "multi": true,
         "current": {
           "text": "All",
           "value": "$__all"
-        },
-        "allValue": ".+"
+        }
       }
     ]
   },
@@ -104,7 +100,7 @@
         {
           "refId": "A",
           "expr": "topk(1, sum by (user_id) (count_over_time({service_name=\"claude-code\"} | event_name=\"user_prompt\" | process_pid=~\"$process\" [1h])))",
-          "legendFormat": "{{user_id}}"
+          "legendFormat": "{{user_email}}"
         }
       ],
       "options": {
@@ -210,14 +206,14 @@
       },
       "gridPos": {
         "x": 0,
-        "y": 15,
+        "y": 5,
         "w": 24,
         "h": 14
       },
       "targets": [
         {
           "refId": "A",
-          "expr": "{service_name=\"claude-code\"} | event_name=\"user_prompt\" | process_pid=~\"$process\" | line_format `{\"started_at\": \"{{.event_timestamp}}\", \"prompt_id\": \"{{.prompt_id}}\", \"user_id\": \"{{.user_id}}\", \"process\": \"{{.process_pid}}\", \"arch\": \"{{.host_arch}}\", \"os\": \"{{.os_type}}\", \"os_ver\": \"{{.os_version}}\", \"claude\": \"v{{.service_version}}\", \"terminal\": \"{{.terminal_type}}\", \"len\": \"{{.prompt_length}}\", \"cwd\": \"{{.process_executable_path}}\"}`"
+          "expr": "{service_name=\"claude-code\"} | event_name=\"user_prompt\" | process_pid=~\"$process\" | line_format `{\"started_at\": \"{{.event_timestamp}}\", \"prompt_id\": \"{{.prompt_id}}\", \"user_id\": \"{{.user_id}}\", \"process\": \"{{.process_pid}}\", \"arch\": \"{{.host arch}}\", \"os\": \"{{.os_type}}\", \"os_ver\": \"{{.os_version}}\", \"claude\": \"v{{.service_version}}\", \"terminal\": \"{{.terminal_type}}\", \"len\": \"{{.prompt_length}}\", \"cwd\": \"{{.process_executable_path}}\"}`"
         }
       ],
       "options": {
@@ -300,21 +296,6 @@
               {
                 "id": "custom.width",
                 "value": 290
-              },
-              {
-                "id": "links",
-                "value": [
-                  {
-                    "title": "Prompt Detail (拆解) →",
-                    "targetBlank": false,
-                    "url": "/d/claude-code-prompt-detail/claude-code-prompt-detail?var-prompt_id=${__data.fields[\"Prompt ID\"]}&var-process=${__data.fields.process}&${__url_time_range}"
-                  },
-                  {
-                    "title": "Trace (执行流程) →",
-                    "targetBlank": false,
-                    "url": "/d/claude-code-trace/claude-code-prompt-trace?var-prompt_id=${__data.fields[\"Prompt ID\"]}&var-process=${__data.fields.process}&${__url_time_range}"
-                  }
-                ]
               }
             ]
           },
@@ -417,7 +398,7 @@
                 "value": [
                   {
                     "title": "View prompts for session ${__data.fields.process} →",
-                    "url": "/d/claude-code-sessions-prompts/claude-code-user-prompts?var-process=${__data.fields.process}&${__url_time_range}",
+                    "url": "/d/claude-code-sessions-prompts/claude-code-user-prompts?var-process=${__data.fields.process}&from=${__data.fields.started_at}&to=now",
                     "targetBlank": false
                   }
                 ]
@@ -438,7 +419,7 @@
       },
       "gridPos": {
         "x": 0,
-        "y": 27,
+        "y": 17,
         "w": 24,
         "h": 12
       },
@@ -457,202 +438,6 @@
         "showCommonLabels": false,
         "prettifyLogMessage": true,
         "dedupStrategy": "none"
-      }
-    },
-    {
-      "id": 7,
-      "type": "table",
-      "title": "Sessions List (每个会话一行 · 含 Resume ID)",
-      "description": "按 (process_pid, session_id) 分组,一行=一个会话。点 PID 列下钻到 User Prompts / Prompt Trace(带本会话 pid 过滤)。Resume ID 即 claude --resume <id>。",
-      "datasource": {
-        "type": "loki",
-        "uid": "loki-claude-code"
-      },
-      "gridPos": {
-        "x": 0,
-        "y": 5,
-        "w": 24,
-        "h": 11
-      },
-      "targets": [
-        {
-          "refId": "A",
-          "datasource": {
-            "type": "loki",
-            "uid": "loki-claude-code"
-          },
-          "expr": "{service_name=\"claude-code\"} |= \"user_prompt\" | process_pid =~ \"$process\"",
-          "queryType": "range",
-          "maxLines": 2000
-        }
-      ],
-      "transformations": [
-        {
-          "id": "extractFields",
-          "options": {
-            "source": "labels",
-            "keepTime": true,
-            "replace": false
-          }
-        },
-        {
-          "id": "groupBy",
-          "options": {
-            "fields": {
-              "session_id": {
-                "operation": "groupby",
-                "aggregations": []
-              },
-              "process_pid": {
-                "operation": "groupby",
-                "aggregations": []
-              },
-              "Time": {
-                "operation": "aggregate",
-                "aggregations": [
-                  "min",
-                  "max"
-                ]
-              },
-              "user_id": {
-                "operation": "aggregate",
-                "aggregations": [
-                  "first"
-                ]
-              },
-              "host_name": {
-                "operation": "aggregate",
-                "aggregations": [
-                  "first"
-                ]
-              },
-              "service_version": {
-                "operation": "aggregate",
-                "aggregations": [
-                  "first"
-                ]
-              },
-              "process_executable_path": {
-                "operation": "aggregate",
-                "aggregations": [
-                  "first"
-                ]
-              },
-              "Line": {
-                "operation": "aggregate",
-                "aggregations": [
-                  "count"
-                ]
-              }
-            }
-          }
-        },
-        {
-          "id": "organize",
-          "options": {
-            "excludeByName": {},
-            "renameByName": {
-              "session_id": "Resume ID (session.id)",
-              "process_pid": "PID",
-              "Time (min)": "First Prompt",
-              "Time (max)": "Last Prompt",
-              "Line (count)": "Prompts",
-              "user_id (first)": "User",
-              "host_name (first)": "Host",
-              "service_version (first)": "Version",
-              "process_executable_path (first)": "CWD"
-            },
-            "indexByName": {
-              "session_id": 0,
-              "process_pid": 1,
-              "Line (count)": 2,
-              "Time (min)": 3,
-              "Time (max)": 4,
-              "user_id (first)": 5,
-              "host_name (first)": 6,
-              "service_version (first)": 7,
-              "process_executable_path (first)": 8
-            }
-          }
-        }
-      ],
-      "fieldConfig": {
-        "defaults": {
-          "custom": {
-            "align": "auto",
-            "filterable": true
-          }
-        },
-        "overrides": [
-          {
-            "matcher": {
-              "id": "byName",
-              "options": "Resume ID (session.id)"
-            },
-            "properties": [
-              {
-                "id": "custom.width",
-                "value": 300
-              }
-            ]
-          },
-          {
-            "matcher": {
-              "id": "byName",
-              "options": "Prompts"
-            },
-            "properties": [
-              {
-                "id": "custom.width",
-                "value": 80
-              },
-              {
-                "id": "custom.cellOptions",
-                "value": {
-                  "type": "color-background"
-                }
-              },
-              {
-                "id": "color",
-                "value": {
-                  "mode": "continuous-BlPu"
-                }
-              }
-            ]
-          },
-          {
-            "matcher": {
-              "id": "byName",
-              "options": "PID"
-            },
-            "properties": [
-              {
-                "id": "links",
-                "value": [
-                  {
-                    "title": "User Prompts (本会话) →",
-                    "url": "/d/claude-code-sessions-prompts/claude-code-user-prompts?var-process=${__data.fields[\"PID\"]}&${__url_time_range}",
-                    "targetBlank": false
-                  },
-                  {
-                    "title": "Prompt Trace (本会话) →",
-                    "url": "/d/claude-code-trace/claude-code-prompt-trace?var-process=${__data.fields[\"PID\"]}&${__url_time_range}",
-                    "targetBlank": false
-                  }
-                ]
-              }
-            ]
-          }
-        ]
-      },
-      "options": {
-        "showHeader": true,
-        "sortBy": [
-          {
-            "displayName": "Last Prompt",
-            "desc": true
-          }
-        ]
       }
     }
   ]

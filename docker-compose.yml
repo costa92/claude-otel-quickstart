@@ -14,7 +14,7 @@ services:
   loki:
     image: grafana/loki:3.3.2
     ports:
-      - "3100:3100"
+      - "3200:3100"   # 宿主机 3200 → 容器内 3100(其他服务要用 3100,故让出宿主机端口)
     command: ["-config.file=/etc/loki/loki-config.yaml"]
     volumes:
       - ./loki-config.yaml:/etc/loki/loki-config.yaml:ro

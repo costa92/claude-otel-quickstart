@@ -8,14 +8,20 @@ processors:
   batch:
     timeout: 2s
     send_batch_size: 1000
-  # 把 OTel resource attributes 复制到 log attributes,
-  # 这样 Loki 的 structured metadata 才有 process.pid / host.name 等
-  transform/logs:
+  # 高基数标识只从 metrics 删掉(防 Prometheus series 爆炸),logs 管道保留它们做关联。
+  # process.pid 由用户 shell 注入(OTEL_RESOURCE_ATTRIBUTES="process.pid=$$"),是 resource 级;
+  # session.id 是 datapoint 级 — 两个上下文都清掉才稳妥。
+  transform/drop_high_cardinality_from_metrics:
     error_mode: ignore
-    log_statements:
-      - context: log
+    metric_statements:
+      - context: resource
         statements:
-          - 'set(attributes["process.pid"], resource.attributes["process.pid"])'
+          - delete_key(attributes, "process.pid")
+          - delete_key(attributes, "session.id")
+      - context: datapoint
+        statements:
+          - delete_key(attributes, "process.pid")
+          - delete_key(attributes, "session.id")
 
 exporters:
   # metrics → Prometheus 原生 OTLP receive
@@ -34,9 +40,9 @@ service:
   pipelines:
     metrics:
       receivers: [otlp]
-      processors: [batch]
+      processors: [transform/drop_high_cardinality_from_metrics, batch]
       exporters: [otlphttp/prometheus]
     logs:
       receivers: [otlp]
-      processors: [transform/logs, batch]
+      processors: [batch]
       exporters: [otlphttp/loki]

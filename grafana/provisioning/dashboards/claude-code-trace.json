@@ -2,6 +2,18 @@
   "id": null,
   "links": [
     {
+      "asDropdown": true,
+      "icon": "apps",
+      "includeVars": true,
+      "keepTime": true,
+      "tags": [
+        "claude-code"
+      ],
+      "targetBlank": false,
+      "title": "📊 Claude Code 面板",
+      "type": "dashboards"
+    },
+    {
       "icon": "arrow-left",
       "includeVars": false,
       "keepTime": true,
@@ -16,7 +28,7 @@
         "type": "loki",
         "uid": "loki-claude-code"
       },
-      "description": "本 prompt 下的完整执行流(按 event_sequence 排序): user_prompt → api_request → tool_result / tool_decision / skill_activated / mcp_server_connection 一条不漏。注意: Claude 2.1.153 的 OTel SDK 没填 trace_id/span_id, 所以用 prompt_id 作逻辑 trace key。",
+      "description": "一条 prompt 从 user_prompt 到最终 api_request 的完整事件链,按 event_sequence 升序(顶=开始)。含 tool_decision(批准/拒绝)与 subagent_completed。",
       "fieldConfig": {
         "defaults": {
           "custom": {
@@ -73,11 +85,56 @@
             "properties": [
               {
                 "id": "custom.width",
-                "value": 1100
+                "value": 620
               },
               {
                 "id": "custom.wrapText",
                 "value": true
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "Params (执行参数)"
+            },
+            "properties": [
+              {
+                "id": "custom.width",
+                "value": 520
+              },
+              {
+                "id": "custom.wrapText",
+                "value": true
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "Error (失败原因)"
+            },
+            "properties": [
+              {
+                "id": "custom.width",
+                "value": 360
+              },
+              {
+                "id": "custom.wrapText",
+                "value": true
+              },
+              {
+                "id": "custom.cellOptions",
+                "value": {
+                  "type": "color-text"
+                }
+              },
+              {
+                "id": "color",
+                "value": {
+                  "mode": "fixed",
+                  "fixedColor": "red"
+                }
               }
             ]
           }
@@ -95,50 +152,70 @@
         "sortBy": [
           {
             "desc": false,
-            "displayName": "seq"
+            "displayName": "Seq"
           }
         ]
       },
       "targets": [
         {
-          "expr": "{service_name=\"claude-code\"} | prompt_id=~\"$prompt_id\" | process_pid=~\"$process\" | event_name=~\"user_prompt|api_request|tool_result|tool_decision|skill_activated|mcp_server_connection\" | line_format ` {\"seq\":{{printf \"%s\" .event_sequence}},\"at\":{{printf \"%q\" (date \"15:04:05.000\" (unixToTime (printf \"%d\" (add 28800 (unixEpoch (toDate \"2006-01-02T15:04:05.000Z\" .event_timestamp))))))}},\"event\":{{printf \"%q\" .event_name}},\"summary\":\"{{if .tool_name}}{{printf \"%s\" .tool_name}} | ok={{.success}} | in={{.tool_input_size_bytes}}B out={{.tool_result_size_bytes}}B | dur={{.duration_ms}}ms{{else if .model}}{{printf \"%s\" .model}} | in={{.input_tokens}} out={{.output_tokens}} | cache_read={{.cache_read_tokens}} | cost=${{.cost_usd}}{{else if .prompt}}{{printf \"%s\" .prompt}}{{else if .skill_name}}{{printf \"skill=%s trigger=%s source=%s\" .skill_name .invocation_trigger .skill_source}}{{else if .server_name}}{{printf \"mcp_server=%s tools=%s\" .server_name .tool_name}}{{end}}\"}`",
+          "expr": "{service_name=\"claude-code\"} | prompt_id=~\"$prompt_id\" | process_pid=~\"$process\" | event_name=~\"user_prompt|api_request|api_error|api_refusal|api_retries_exhausted|internal_error|compaction|tool_result|tool_decision|skill_activated|subagent_completed|mcp_server_connection\" | line_format ` {\"seq\":{{printf \"%s\" .event_sequence}},\"at\":{{printf \"%q\" (date \"15:04:05.000\" (unixToTime (printf \"%d\" (add 28800 (unixEpoch (toDate \"2006-01-02T15:04:05.000Z\" .event_timestamp))))))}},\"event\":{{printf \"%q\" .event_name}},\"summary\":\"{{if .agent_type}}subagent={{.agent_type}} | tokens={{.total_tokens}} | tools={{.total_tool_uses}} | dur={{.duration_ms}}ms{{else if .decision}}{{.tool_name}} -> {{.decision}} (by {{.source}}){{else if .status}}mcp {{.status}} | scope={{.server_scope}} | {{.transport_type}}{{else if .attempt}}API ERROR | {{.model}} | status={{.status_code}} | attempt={{.attempt}} | dur={{.duration_ms}}ms{{else if .model}}{{.model}} | tok in={{.input_tokens}} out={{.output_tokens}} cache_read={{.cache_read_tokens}} cache_create={{.cache_creation_tokens}} | cost=${{.cost_usd}} | dur={{.duration_ms}}ms{{else if .success}}{{.tool_name}} | ok={{.success}} | data in={{.tool_input_size_bytes}}B out={{.tool_result_size_bytes}}B | dur={{.duration_ms}}ms{{else if .prompt}}{{.prompt}}{{else if .skill_name}}skill={{.skill_name}} | trigger={{.invocation_trigger}} | source={{.skill_source}}{{else}}{{.event_name}}{{end}}\",\"params\":{{if .tool_parameters}}{{printf \"%q\" .tool_parameters}}{{else if .tool_input}}{{printf \"%q\" .tool_input}}{{else}}\"\"{{end}},\"error\":{{if .error}}{{printf \"%q\" .error}}{{else}}\"\"{{end}}}`",
           "refId": "A"
         }
       ],
-      "title": "Trace Timeline (all events, ordered by sequence)",
+      "title": "Trace Timeline (开始→结束, 按 seq 升序)",
       "transformations": [
         {
           "id": "extractFields",
           "options": {
-            "format": "json",
-            "keepTime": false,
-            "replaceSpaceWith": "",
             "source": "Line",
-            "trim": true
+            "format": "json",
+            "replace": true,
+            "keepTime": true
+          }
+        },
+        {
+          "id": "convertFieldType",
+          "options": {
+            "fields": {},
+            "conversions": [
+              {
+                "targetField": "seq",
+                "destinationType": "number"
+              }
+            ]
+          }
+        },
+        {
+          "id": "sortBy",
+          "options": {
+            "fields": {},
+            "sort": [
+              {
+                "field": "seq",
+                "desc": false
+              }
+            ]
           }
         },
         {
           "id": "organize",
           "options": {
-            "excludeByName": {
-              "Line": true,
-              "Time": true,
-              "id": true,
-              "labelTypes": true,
-              "labels": true,
-              "tsNs": true
-            },
+            "excludeByName": {},
             "indexByName": {
+              "seq": 0,
               "at": 1,
               "event": 2,
-              "seq": 0,
-              "summary": 3
+              "summary": 3,
+              "params": 4,
+              "error": 5
             },
             "renameByName": {
+              "seq": "Seq",
               "at": "At",
               "event": "Event",
-              "seq": "Seq",
-              "summary": "Summary"
+              "summary": "Summary",
+              "params": "Params (执行参数)",
+              "error": "Error (失败原因)"
             }
           }
         }
@@ -173,7 +250,7 @@
           "type": "loki",
           "uid": "loki-claude-code"
         },
-        "query": "{service_name=\"claude-code\"} | event_name=\"user_prompt\" | process_pid=~\"$process\"",
+        "query": "sum by(prompt_id)(count_over_time({service_name=\"claude-code\"} | event_name=\"user_prompt\" | process_pid=~\"$process\" [$__range]))",
         "queryValue": "",
         "refresh": 2,
         "includeAll": false,

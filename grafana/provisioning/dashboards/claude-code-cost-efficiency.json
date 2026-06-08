@@ -1,0 +1,1114 @@
+{
+  "id": null,
+  "uid": "claude-code-cost-efficiency",
+  "title": "Claude Code - Cost & Efficiency 优化",
+  "tags": [
+    "claude-code"
+  ],
+  "timezone": "browser",
+  "schemaVersion": 39,
+  "version": 1,
+  "refresh": "30s",
+  "time": {
+    "from": "now-24h",
+    "to": "now"
+  },
+  "templating": {
+    "list": [
+      {
+        "name": "process",
+        "type": "textbox",
+        "label": "Process PID (正则,默认全部)",
+        "query": ".*",
+        "current": {
+          "text": ".*",
+          "value": ".*"
+        },
+        "options": [
+          {
+            "text": ".*",
+            "value": ".*",
+            "selected": true
+          }
+        ]
+      }
+    ]
+  },
+  "links": [
+    {
+      "asDropdown": true,
+      "icon": "apps",
+      "includeVars": true,
+      "keepTime": true,
+      "tags": [
+        "claude-code"
+      ],
+      "targetBlank": false,
+      "title": "📊 Claude Code 面板",
+      "type": "dashboards"
+    },
+    {
+      "title": "← Overview",
+      "type": "link",
+      "url": "/d/claude-code-overview/",
+      "icon": "external link",
+      "targetBlank": false
+    },
+    {
+      "title": "Sessions",
+      "type": "link",
+      "url": "/d/claude-code-sessions/",
+      "icon": "external link",
+      "targetBlank": false
+    },
+    {
+      "title": "Prompt Detail",
+      "type": "link",
+      "url": "/d/claude-code-prompt-detail/",
+      "icon": "external link",
+      "targetBlank": false
+    }
+  ],
+  "panels": [
+    {
+      "id": 1,
+      "title": "Cache 命中率 (区间)",
+      "type": "stat",
+      "datasource": {
+        "type": "loki",
+        "uid": "loki-claude-code"
+      },
+      "description": "cache_read / (cache_read + cache_creation + fresh input)。越高越省钱:命中的上下文按 ~10% 价计费。",
+      "gridPos": {
+        "h": 4,
+        "w": 6,
+        "x": 0,
+        "y": 0
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "editorMode": "code",
+          "expr": "sum(sum_over_time({service_name=\"claude-code\"} | event_name=\"api_request\" | process_pid=~\"$process\" | unwrap cache_read_tokens [$__range])) / (sum(sum_over_time({service_name=\"claude-code\"} | event_name=\"api_request\" | process_pid=~\"$process\" | unwrap cache_read_tokens [$__range])) + sum(sum_over_time({service_name=\"claude-code\"} | event_name=\"api_request\" | process_pid=~\"$process\" | unwrap cache_creation_tokens [$__range])) + sum(sum_over_time({service_name=\"claude-code\"} | event_name=\"api_request\" | process_pid=~\"$process\" | unwrap input_tokens [$__range])))",
+          "queryType": "instant",
+          "datasource": {
+            "type": "loki",
+            "uid": "loki-claude-code"
+          },
+          "instant": true,
+          "range": false
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "percentunit",
+          "noValue": "0",
+          "color": {
+            "mode": "thresholds"
+          },
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "red",
+                "value": null
+              },
+              {
+                "color": "orange",
+                "value": 0.4
+              },
+              {
+                "color": "green",
+                "value": 0.7
+              }
+            ]
+          }
+        },
+        "overrides": []
+      },
+      "options": {
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ]
+        },
+        "colorMode": "value",
+        "graphMode": "area",
+        "textMode": "value"
+      }
+    },
+    {
+      "id": 2,
+      "title": "区间累计成本",
+      "type": "stat",
+      "datasource": {
+        "type": "loki",
+        "uid": "loki-claude-code"
+      },
+      "description": "所选时间范围内全部 api_request 的 cost_usd 之和。",
+      "gridPos": {
+        "h": 4,
+        "w": 6,
+        "x": 6,
+        "y": 0
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "editorMode": "code",
+          "expr": "sum(sum_over_time({service_name=\"claude-code\"} | event_name=\"api_request\" | process_pid=~\"$process\" | unwrap cost_usd [$__range]))",
+          "queryType": "instant",
+          "datasource": {
+            "type": "loki",
+            "uid": "loki-claude-code"
+          },
+          "instant": true,
+          "range": false
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "currencyUSD",
+          "decimals": 4,
+          "color": {
+            "mode": "fixed",
+            "fixedColor": "red"
+          }
+        },
+        "overrides": []
+      },
+      "options": {
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ]
+        },
+        "colorMode": "value",
+        "graphMode": "none",
+        "textMode": "value"
+      }
+    },
+    {
+      "id": 3,
+      "title": "Cache Read 总量",
+      "type": "stat",
+      "datasource": {
+        "type": "loki",
+        "uid": "loki-claude-code"
+      },
+      "description": "命中缓存的输入 token 总量(按 ~10% 价计费的部分)。",
+      "gridPos": {
+        "h": 4,
+        "w": 6,
+        "x": 12,
+        "y": 0
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "editorMode": "code",
+          "expr": "sum(sum_over_time({service_name=\"claude-code\"} | event_name=\"api_request\" | process_pid=~\"$process\" | unwrap cache_read_tokens [$__range]))",
+          "queryType": "instant",
+          "datasource": {
+            "type": "loki",
+            "uid": "loki-claude-code"
+          },
+          "instant": true,
+          "range": false
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "short",
+          "color": {
+            "mode": "fixed",
+            "fixedColor": "green"
+          }
+        },
+        "overrides": []
+      },
+      "options": {
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ]
+        },
+        "colorMode": "value",
+        "graphMode": "none",
+        "textMode": "value"
+      }
+    },
+    {
+      "id": 4,
+      "title": "平均 API 延迟",
+      "type": "stat",
+      "datasource": {
+        "type": "loki",
+        "uid": "loki-claude-code"
+      },
+      "description": "api_request duration_ms 的均值。",
+      "gridPos": {
+        "h": 4,
+        "w": 6,
+        "x": 18,
+        "y": 0
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "editorMode": "code",
+          "expr": "avg(avg_over_time({service_name=\"claude-code\"} | event_name=\"api_request\" | process_pid=~\"$process\" | unwrap duration_ms [$__range]))",
+          "queryType": "instant",
+          "datasource": {
+            "type": "loki",
+            "uid": "loki-claude-code"
+          },
+          "instant": true,
+          "range": false
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "ms",
+          "decimals": 0,
+          "color": {
+            "mode": "thresholds"
+          },
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": null
+              },
+              {
+                "color": "orange",
+                "value": 5000
+              },
+              {
+                "color": "red",
+                "value": 15000
+              }
+            ]
+          }
+        },
+        "overrides": []
+      },
+      "options": {
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ]
+        },
+        "colorMode": "value",
+        "graphMode": "area",
+        "textMode": "value"
+      }
+    },
+    {
+      "id": 5,
+      "title": "Token 构成趋势 (cache_read / cache_creation / fresh input)",
+      "type": "timeseries",
+      "datasource": {
+        "type": "loki",
+        "uid": "loki-claude-code"
+      },
+      "description": "缓存命中(cache_read,便宜)应远大于另两者才算高效。",
+      "gridPos": {
+        "h": 8,
+        "w": 12,
+        "x": 0,
+        "y": 4
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "editorMode": "code",
+          "expr": "sum(sum_over_time({service_name=\"claude-code\"} | event_name=\"api_request\" | process_pid=~\"$process\" | unwrap cache_read_tokens [$__interval]))",
+          "queryType": "range",
+          "datasource": {
+            "type": "loki",
+            "uid": "loki-claude-code"
+          },
+          "range": true,
+          "legendFormat": "cache_read"
+        },
+        {
+          "refId": "B",
+          "editorMode": "code",
+          "expr": "sum(sum_over_time({service_name=\"claude-code\"} | event_name=\"api_request\" | process_pid=~\"$process\" | unwrap cache_creation_tokens [$__interval]))",
+          "queryType": "range",
+          "datasource": {
+            "type": "loki",
+            "uid": "loki-claude-code"
+          },
+          "range": true,
+          "legendFormat": "cache_creation"
+        },
+        {
+          "refId": "C",
+          "editorMode": "code",
+          "expr": "sum(sum_over_time({service_name=\"claude-code\"} | event_name=\"api_request\" | process_pid=~\"$process\" | unwrap input_tokens [$__interval]))",
+          "queryType": "range",
+          "datasource": {
+            "type": "loki",
+            "uid": "loki-claude-code"
+          },
+          "range": true,
+          "legendFormat": "fresh_input"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "short",
+          "custom": {
+            "drawStyle": "line",
+            "fillOpacity": 30,
+            "stacking": {
+              "mode": "normal"
+            }
+          }
+        },
+        "overrides": []
+      },
+      "options": {
+        "legend": {
+          "displayMode": "table",
+          "placement": "bottom",
+          "calcs": [
+            "sum"
+          ]
+        },
+        "tooltip": {
+          "mode": "multi"
+        }
+      }
+    },
+    {
+      "id": 6,
+      "title": "成本燃烧率 ($/bucket, 按模型)",
+      "type": "timeseries",
+      "datasource": {
+        "type": "loki",
+        "uid": "loki-claude-code"
+      },
+      "description": "每个时间桶的花费,按模型分层。看燃烧节奏和贵模型尖峰。",
+      "gridPos": {
+        "h": 8,
+        "w": 12,
+        "x": 12,
+        "y": 4
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "editorMode": "code",
+          "expr": "sum by (model) (sum_over_time({service_name=\"claude-code\"} | event_name=\"api_request\" | process_pid=~\"$process\" | unwrap cost_usd [$__interval]))",
+          "queryType": "range",
+          "datasource": {
+            "type": "loki",
+            "uid": "loki-claude-code"
+          },
+          "range": true,
+          "legendFormat": "{{model}}"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "currencyUSD",
+          "decimals": 4,
+          "custom": {
+            "drawStyle": "bars",
+            "fillOpacity": 70,
+            "stacking": {
+              "mode": "normal"
+            }
+          }
+        },
+        "overrides": []
+      },
+      "options": {
+        "legend": {
+          "displayMode": "table",
+          "placement": "bottom",
+          "calcs": [
+            "sum"
+          ]
+        },
+        "tooltip": {
+          "mode": "multi"
+        }
+      }
+    },
+    {
+      "id": 7,
+      "title": "成本按模型占比",
+      "type": "piechart",
+      "datasource": {
+        "type": "loki",
+        "uid": "loki-claude-code"
+      },
+      "description": "各模型花费占比。opus 占比过高=优化空间(能否降级 sonnet/haiku)。",
+      "gridPos": {
+        "h": 8,
+        "w": 8,
+        "x": 0,
+        "y": 12
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "editorMode": "code",
+          "expr": "sum by (model) (sum_over_time({service_name=\"claude-code\"} | event_name=\"api_request\" | process_pid=~\"$process\" | unwrap cost_usd [$__range]))",
+          "queryType": "instant",
+          "datasource": {
+            "type": "loki",
+            "uid": "loki-claude-code"
+          },
+          "instant": true,
+          "range": false,
+          "legendFormat": "{{model}}"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "currencyUSD",
+          "decimals": 4
+        },
+        "overrides": []
+      },
+      "options": {
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ]
+        },
+        "pieType": "donut",
+        "legend": {
+          "displayMode": "table",
+          "placement": "right",
+          "values": [
+            "value",
+            "percent"
+          ]
+        }
+      }
+    },
+    {
+      "id": 8,
+      "title": "Output Token 按模型",
+      "type": "bargauge",
+      "datasource": {
+        "type": "loki",
+        "uid": "loki-claude-code"
+      },
+      "description": "各模型产出 token 量(输出是成本大头)。",
+      "gridPos": {
+        "h": 8,
+        "w": 8,
+        "x": 8,
+        "y": 12
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "editorMode": "code",
+          "expr": "sum by (model) (sum_over_time({service_name=\"claude-code\"} | event_name=\"api_request\" | process_pid=~\"$process\" | unwrap output_tokens [$__range]))",
+          "queryType": "instant",
+          "datasource": {
+            "type": "loki",
+            "uid": "loki-claude-code"
+          },
+          "instant": true,
+          "range": false,
+          "legendFormat": "{{model}}"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "short",
+          "color": {
+            "mode": "continuous-GrYlRd"
+          }
+        },
+        "overrides": []
+      },
+      "options": {
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ]
+        },
+        "orientation": "horizontal",
+        "displayMode": "gradient"
+      }
+    },
+    {
+      "id": 9,
+      "title": "API 延迟 平均/最大 (ms)",
+      "type": "timeseries",
+      "datasource": {
+        "type": "loki",
+        "uid": "loki-claude-code"
+      },
+      "description": "慢请求识别。",
+      "gridPos": {
+        "h": 8,
+        "w": 8,
+        "x": 16,
+        "y": 12
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "editorMode": "code",
+          "expr": "avg(avg_over_time({service_name=\"claude-code\"} | event_name=\"api_request\" | process_pid=~\"$process\" | unwrap duration_ms [$__interval]))",
+          "queryType": "range",
+          "datasource": {
+            "type": "loki",
+            "uid": "loki-claude-code"
+          },
+          "range": true,
+          "legendFormat": "avg"
+        },
+        {
+          "refId": "B",
+          "editorMode": "code",
+          "expr": "max(max_over_time({service_name=\"claude-code\"} | event_name=\"api_request\" | process_pid=~\"$process\" | unwrap duration_ms [$__interval]))",
+          "queryType": "range",
+          "datasource": {
+            "type": "loki",
+            "uid": "loki-claude-code"
+          },
+          "range": true,
+          "legendFormat": "max"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "ms",
+          "custom": {
+            "drawStyle": "line",
+            "fillOpacity": 10
+          }
+        },
+        "overrides": []
+      },
+      "options": {
+        "legend": {
+          "displayMode": "list",
+          "placement": "bottom"
+        },
+        "tooltip": {
+          "mode": "multi"
+        }
+      }
+    },
+    {
+      "id": 10,
+      "title": "工具失败率 (区间)",
+      "type": "stat",
+      "datasource": {
+        "type": "loki",
+        "uid": "loki-claude-code"
+      },
+      "description": "success=false 的 tool_result 占比。0 失败时显示 0%。",
+      "gridPos": {
+        "h": 8,
+        "w": 6,
+        "x": 0,
+        "y": 20
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "editorMode": "code",
+          "expr": "sum(count_over_time({service_name=\"claude-code\"} | event_name=\"tool_result\" | process_pid=~\"$process\" | success=\"false\" [$__range])) / sum(count_over_time({service_name=\"claude-code\"} | event_name=\"tool_result\" | process_pid=~\"$process\" [$__range]))",
+          "queryType": "instant",
+          "datasource": {
+            "type": "loki",
+            "uid": "loki-claude-code"
+          },
+          "instant": true,
+          "range": false
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "percentunit",
+          "noValue": "0",
+          "color": {
+            "mode": "thresholds"
+          },
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": null
+              },
+              {
+                "color": "orange",
+                "value": 0.05
+              },
+              {
+                "color": "red",
+                "value": 0.2
+              }
+            ]
+          }
+        },
+        "overrides": []
+      },
+      "options": {
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ]
+        },
+        "colorMode": "background",
+        "graphMode": "none",
+        "textMode": "value"
+      }
+    },
+    {
+      "id": 11,
+      "title": "最慢工具 (avg ms)",
+      "type": "bargauge",
+      "datasource": {
+        "type": "loki",
+        "uid": "loki-claude-code"
+      },
+      "description": "按工具的平均耗时,定位拖慢会话的工具。",
+      "gridPos": {
+        "h": 8,
+        "w": 9,
+        "x": 6,
+        "y": 20
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "editorMode": "code",
+          "expr": "avg by (tool_name) (avg_over_time({service_name=\"claude-code\"} | event_name=\"tool_result\" | process_pid=~\"$process\" | unwrap duration_ms [$__range]))",
+          "queryType": "instant",
+          "datasource": {
+            "type": "loki",
+            "uid": "loki-claude-code"
+          },
+          "instant": true,
+          "range": false,
+          "legendFormat": "{{tool_name}}"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "ms",
+          "decimals": 0,
+          "color": {
+            "mode": "continuous-GrYlRd"
+          }
+        },
+        "overrides": []
+      },
+      "options": {
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ]
+        },
+        "orientation": "horizontal",
+        "displayMode": "gradient"
+      }
+    },
+    {
+      "id": 12,
+      "title": "工具调用次数 by tool",
+      "type": "bargauge",
+      "datasource": {
+        "type": "loki",
+        "uid": "loki-claude-code"
+      },
+      "description": "工具使用频次分布。",
+      "gridPos": {
+        "h": 8,
+        "w": 9,
+        "x": 15,
+        "y": 20
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "editorMode": "code",
+          "expr": "sum by (tool_name) (count_over_time({service_name=\"claude-code\"} | event_name=\"tool_result\" | process_pid=~\"$process\" [$__range]))",
+          "queryType": "instant",
+          "datasource": {
+            "type": "loki",
+            "uid": "loki-claude-code"
+          },
+          "instant": true,
+          "range": false,
+          "legendFormat": "{{tool_name}}"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "short",
+          "color": {
+            "mode": "continuous-BlPu"
+          }
+        },
+        "overrides": []
+      },
+      "options": {
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ]
+        },
+        "orientation": "horizontal",
+        "displayMode": "gradient"
+      }
+    },
+    {
+      "id": 13,
+      "title": "Top 20 最贵 Prompt (点 Prompt ID 下钻)",
+      "type": "table",
+      "datasource": {
+        "type": "loki",
+        "uid": "loki-claude-code"
+      },
+      "description": "按 prompt 聚合的花费排行。点 Prompt ID 跳到 Prompt Detail 拆解 token/cost/工具调用。",
+      "gridPos": {
+        "h": 11,
+        "w": 24,
+        "x": 0,
+        "y": 28
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "editorMode": "code",
+          "expr": "topk(20, sum by (prompt_id, model, process_pid) (sum_over_time({service_name=\"claude-code\"} | event_name=\"api_request\" | process_pid=~\"$process\" | unwrap cost_usd [$__range])))",
+          "queryType": "instant",
+          "datasource": {
+            "type": "loki",
+            "uid": "loki-claude-code"
+          },
+          "instant": true,
+          "range": false,
+          "legendFormat": ""
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "custom": {
+            "align": "left",
+            "filterable": true
+          }
+        },
+        "overrides": [
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "Cost (USD)"
+            },
+            "properties": [
+              {
+                "id": "unit",
+                "value": "currencyUSD"
+              },
+              {
+                "id": "decimals",
+                "value": 4
+              },
+              {
+                "id": "custom.cellOptions",
+                "value": {
+                  "type": "color-background"
+                }
+              },
+              {
+                "id": "custom.align",
+                "value": "right"
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "Prompt ID"
+            },
+            "properties": [
+              {
+                "id": "links",
+                "value": [
+                  {
+                    "title": "拆解此 Prompt (Prompt Detail) →",
+                    "url": "/d/claude-code-prompt-detail/claude-code-prompt-detail?var-prompt_id=${__data.fields[\"Prompt ID\"]}&var-process=${__data.fields.PID}&${__url_time_range}"
+                  },
+                  {
+                    "title": "Trace (执行流程) →",
+                    "targetBlank": false,
+                    "url": "/d/claude-code-trace/claude-code-prompt-trace?var-prompt_id=${__data.fields[\"Prompt ID\"]}&var-process=${__data.fields.PID}&${__url_time_range}"
+                  }
+                ]
+              }
+            ]
+          }
+        ]
+      },
+      "options": {
+        "showHeader": true,
+        "cellHeight": "sm"
+      },
+      "transformations": [
+        {
+          "id": "organize",
+          "options": {
+            "excludeByName": {
+              "Time": true
+            },
+            "indexByName": {
+              "prompt_id": 0,
+              "model": 1,
+              "process_pid": 2,
+              "Value": 3
+            },
+            "renameByName": {
+              "prompt_id": "Prompt ID",
+              "model": "Model",
+              "process_pid": "PID",
+              "Value": "Cost (USD)"
+            }
+          }
+        },
+        {
+          "id": "sortBy",
+          "options": {
+            "fields": {},
+            "sort": [
+              {
+                "field": "Cost (USD)",
+                "desc": true
+              }
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "id": 14,
+      "title": "成本按 effort 级别 (找贵请求根因)",
+      "type": "bargauge",
+      "datasource": {
+        "type": "loki",
+        "uid": "loki-claude-code"
+      },
+      "description": "thinking effort(high/none 等)× model 的花费分解。高 effort 占比大=优化点。",
+      "gridPos": {
+        "h": 8,
+        "w": 12,
+        "x": 0,
+        "y": 39
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "editorMode": "code",
+          "queryType": "instant",
+          "instant": true,
+          "range": false,
+          "datasource": {
+            "type": "loki",
+            "uid": "loki-claude-code"
+          },
+          "expr": "sum by (effort, model) (sum_over_time({service_name=\"claude-code\"} | event_name=\"api_request\" | process_pid=~\"$process\" | unwrap cost_usd [$__range]))",
+          "legendFormat": "{{model}} / effort={{effort}}"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "currencyUSD",
+          "decimals": 4,
+          "color": {
+            "mode": "continuous-GrYlRd"
+          }
+        },
+        "overrides": []
+      },
+      "options": {
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ]
+        },
+        "orientation": "horizontal",
+        "displayMode": "gradient"
+      }
+    },
+    {
+      "id": 15,
+      "title": "Edit 接受率 (区间)",
+      "type": "stat",
+      "datasource": {
+        "type": "loki",
+        "uid": "loki-claude-code"
+      },
+      "description": "区间内 Write/Edit/MultiEdit 的 tool_decision 中 accept 占比(来自 Loki 事件,尊重时间范围)。skip-permissions 下恒 100%;交互模式=你采纳 Claude 编辑的比例。",
+      "gridPos": {
+        "h": 8,
+        "w": 6,
+        "x": 0,
+        "y": 47
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "editorMode": "code",
+          "datasource": {
+            "type": "loki",
+            "uid": "loki-claude-code"
+          },
+          "queryType": "instant",
+          "instant": true,
+          "range": false,
+          "expr": "sum(count_over_time({service_name=\"claude-code\"} | event_name=\"tool_decision\" | process_pid=~\"$process\" | tool_name=~\"Write|Edit|MultiEdit|NotebookEdit\" | decision=\"accept\" [$__range])) / sum(count_over_time({service_name=\"claude-code\"} | event_name=\"tool_decision\" | process_pid=~\"$process\" | tool_name=~\"Write|Edit|MultiEdit|NotebookEdit\" [$__range]))"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "percentunit",
+          "noValue": "0",
+          "color": {
+            "mode": "thresholds"
+          },
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "red",
+                "value": null
+              },
+              {
+                "color": "orange",
+                "value": 0.5
+              },
+              {
+                "color": "green",
+                "value": 0.8
+              }
+            ]
+          }
+        },
+        "overrides": []
+      },
+      "options": {
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ]
+        },
+        "colorMode": "background",
+        "graphMode": "none"
+      }
+    },
+    {
+      "id": 16,
+      "title": "代码行 added/removed (累计·counter无窗口)",
+      "type": "bargauge",
+      "datasource": {
+        "type": "prometheus",
+        "uid": "prom-claude-code"
+      },
+      "description": "Claude 写入/删除代码行 by type。仅 Prometheus 指标有此数据;OTLP cumulative counter 每次变化只推 1 样本,无法算时间窗增量,故为累计总量。",
+      "gridPos": {
+        "h": 8,
+        "w": 9,
+        "x": 6,
+        "y": 47
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "editorMode": "code",
+          "expr": "sum by(type)(claude_code_lines_of_code_count_total)",
+          "datasource": {
+            "type": "prometheus",
+            "uid": "prom-claude-code"
+          },
+          "instant": true,
+          "range": false,
+          "legendFormat": "{{type}}"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "short",
+          "color": {
+            "mode": "palette-classic"
+          }
+        },
+        "overrides": []
+      },
+      "options": {
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ]
+        },
+        "orientation": "horizontal",
+        "displayMode": "gradient"
+      }
+    },
+    {
+      "id": 17,
+      "title": "编辑决策 by 工具 (区间)",
+      "type": "bargauge",
+      "datasource": {
+        "type": "loki",
+        "uid": "loki-claude-code"
+      },
+      "description": "区间内编辑类工具(Write/Edit/MultiEdit)的调用分布(Loki 事件,尊重时间范围)。注:按 language 细分仅 Prometheus 指标有(累计),见下方说明。",
+      "gridPos": {
+        "h": 8,
+        "w": 9,
+        "x": 15,
+        "y": 47
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "editorMode": "code",
+          "datasource": {
+            "type": "loki",
+            "uid": "loki-claude-code"
+          },
+          "queryType": "instant",
+          "instant": true,
+          "range": false,
+          "expr": "sum by(tool_name)(count_over_time({service_name=\"claude-code\"} | event_name=\"tool_decision\" | process_pid=~\"$process\" | tool_name=~\"Write|Edit|MultiEdit|NotebookEdit\" [$__range]))",
+          "legendFormat": "{{tool_name}}"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "short",
+          "color": {
+            "mode": "continuous-BlPu"
+          }
+        },
+        "overrides": []
+      },
+      "options": {
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ]
+        },
+        "orientation": "horizontal",
+        "displayMode": "gradient"
+      }
+    }
+  ]
+}

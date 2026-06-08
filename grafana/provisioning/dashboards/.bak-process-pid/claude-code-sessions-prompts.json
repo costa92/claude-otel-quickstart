@@ -2,18 +2,6 @@
   "id": 7,
   "links": [
     {
-      "asDropdown": true,
-      "icon": "apps",
-      "includeVars": true,
-      "keepTime": true,
-      "tags": [
-        "claude-code"
-      ],
-      "targetBlank": false,
-      "title": "📊 Claude Code 面板",
-      "type": "dashboards"
-    },
-    {
       "icon": "external link",
       "includeVars": false,
       "keepTime": true,
@@ -243,11 +231,6 @@
                     "targetBlank": false,
                     "title": "Prompt detail ${__value.text} →",
                     "url": "/d/claude-code-prompt-detail/claude-code-prompt-detail?var-prompt_id=${__value.text}&var-process=${__data.fields.Process}&from=${__from}&to=${__to}&refresh=10s"
-                  },
-                  {
-                    "title": "Trace (执行流程) →",
-                    "targetBlank": false,
-                    "url": "/d/claude-code-trace/claude-code-prompt-trace?var-prompt_id=${__data.fields[\"Prompt ID\"]}&var-process=${__data.fields.Process}&${__url_time_range}"
                   }
                 ]
               }
@@ -427,7 +410,7 @@
         "h": 17,
         "w": 24,
         "x": 0,
-        "y": 15
+        "y": 5
       },
       "id": 5,
       "options": {
@@ -615,7 +598,7 @@
         "h": 5,
         "w": 6,
         "x": 0,
-        "y": 32
+        "y": 22
       },
       "id": 7,
       "options": {
@@ -651,7 +634,7 @@
         "h": 5,
         "w": 6,
         "x": 6,
-        "y": 32
+        "y": 22
       },
       "id": 8,
       "options": {
@@ -688,7 +671,7 @@
         "h": 5,
         "w": 6,
         "x": 12,
-        "y": 32
+        "y": 22
       },
       "id": 9,
       "options": {
@@ -725,7 +708,7 @@
         "h": 5,
         "w": 6,
         "x": 18,
-        "y": 32
+        "y": 22
       },
       "id": 10,
       "options": {
@@ -757,7 +740,7 @@
   "templating": {
     "list": [
       {
-        "allValue": ".+",
+        "allValue": ".*",
         "current": {
           "text": "All",
           "value": "$__all"
@@ -769,7 +752,14 @@
         "includeAll": true,
         "multi": false,
         "name": "process",
-        "query": "sum by (process_pid) (count_over_time({service_name=\"claude-code\"} |= \"user_prompt\" | process_pid =~ \".+\" [$__range]))",
+        "options": [
+          {
+            "selected": true,
+            "text": "All",
+            "value": "$__all"
+          }
+        ],
+        "query": "{service_name=\"claude-code\"} | event_name=\"user_prompt\"",
         "queryValue": "",
         "refresh": 2,
         "type": "query"

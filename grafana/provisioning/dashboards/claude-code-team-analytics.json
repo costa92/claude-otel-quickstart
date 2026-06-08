@@ -1,0 +1,1030 @@
+{
+  "id": null,
+  "links": [
+    {
+      "asDropdown": true,
+      "icon": "apps",
+      "includeVars": true,
+      "keepTime": true,
+      "tags": [
+        "claude-code"
+      ],
+      "targetBlank": false,
+      "title": "📊 Claude Code 面板",
+      "type": "dashboards"
+    }
+  ],
+  "panels": [
+    {
+      "id": 1,
+      "title": "团队 Token 总量 (区间)",
+      "type": "stat",
+      "datasource": {
+        "type": "loki",
+        "uid": "loki-claude-code"
+      },
+      "description": "所选时间范围内全部 api_request 的 input+output+cache_read+cache_creation token 之和。资源规划看这个总量。",
+      "gridPos": {
+        "h": 4,
+        "w": 6,
+        "x": 0,
+        "y": 0
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "editorMode": "code",
+          "expr": "sum(sum_over_time({service_name=\"claude-code\"} | event_name=\"api_request\" | process_pid=~\"$process\" | unwrap input_tokens [$__range])) + sum(sum_over_time({service_name=\"claude-code\"} | event_name=\"api_request\" | process_pid=~\"$process\" | unwrap output_tokens [$__range])) + sum(sum_over_time({service_name=\"claude-code\"} | event_name=\"api_request\" | process_pid=~\"$process\" | unwrap cache_read_tokens [$__range])) + sum(sum_over_time({service_name=\"claude-code\"} | event_name=\"api_request\" | process_pid=~\"$process\" | unwrap cache_creation_tokens [$__range]))",
+          "queryType": "instant",
+          "datasource": {
+            "type": "loki",
+            "uid": "loki-claude-code"
+          },
+          "instant": true,
+          "range": false
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "short",
+          "decimals": 0,
+          "noValue": "0",
+          "color": {
+            "mode": "fixed",
+            "fixedColor": "blue"
+          }
+        },
+        "overrides": []
+      },
+      "options": {
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ]
+        },
+        "colorMode": "value",
+        "graphMode": "none",
+        "textMode": "value"
+      }
+    },
+    {
+      "id": 2,
+      "title": "活跃 Prompt 数 (区间)",
+      "type": "stat",
+      "datasource": {
+        "type": "loki",
+        "uid": "loki-claude-code"
+      },
+      "description": "区间内 user_prompt 事件总数,反映团队真实使用强度。",
+      "gridPos": {
+        "h": 4,
+        "w": 6,
+        "x": 6,
+        "y": 0
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "editorMode": "code",
+          "expr": "sum(count_over_time({service_name=\"claude-code\"} | event_name=\"user_prompt\" | process_pid=~\"$process\" [$__range]))",
+          "queryType": "instant",
+          "datasource": {
+            "type": "loki",
+            "uid": "loki-claude-code"
+          },
+          "instant": true,
+          "range": false
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "short",
+          "decimals": 0,
+          "noValue": "0",
+          "color": {
+            "mode": "fixed",
+            "fixedColor": "green"
+          }
+        },
+        "overrides": []
+      },
+      "options": {
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ]
+        },
+        "colorMode": "value",
+        "graphMode": "none",
+        "textMode": "value"
+      }
+    },
+    {
+      "id": 3,
+      "title": "Skill 触发次数 (区间)",
+      "type": "stat",
+      "datasource": {
+        "type": "loki",
+        "uid": "loki-claude-code"
+      },
+      "description": "区间内 skill_activated 事件总数。",
+      "gridPos": {
+        "h": 4,
+        "w": 6,
+        "x": 12,
+        "y": 0
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "editorMode": "code",
+          "expr": "sum(count_over_time({service_name=\"claude-code\"} | event_name=\"skill_activated\" | process_pid=~\"$process\" [$__range]))",
+          "queryType": "instant",
+          "datasource": {
+            "type": "loki",
+            "uid": "loki-claude-code"
+          },
+          "instant": true,
+          "range": false
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "short",
+          "decimals": 0,
+          "noValue": "0",
+          "color": {
+            "mode": "fixed",
+            "fixedColor": "purple"
+          }
+        },
+        "overrides": []
+      },
+      "options": {
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ]
+        },
+        "colorMode": "value",
+        "graphMode": "none",
+        "textMode": "value"
+      }
+    },
+    {
+      "id": 4,
+      "title": "工具调用次数 (区间)",
+      "type": "stat",
+      "datasource": {
+        "type": "loki",
+        "uid": "loki-claude-code"
+      },
+      "description": "区间内 tool_result 事件总数(所有工具合计)。",
+      "gridPos": {
+        "h": 4,
+        "w": 6,
+        "x": 18,
+        "y": 0
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "editorMode": "code",
+          "expr": "sum(count_over_time({service_name=\"claude-code\"} | event_name=\"tool_result\" | process_pid=~\"$process\" [$__range]))",
+          "queryType": "instant",
+          "datasource": {
+            "type": "loki",
+            "uid": "loki-claude-code"
+          },
+          "instant": true,
+          "range": false
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "short",
+          "decimals": 0,
+          "noValue": "0",
+          "color": {
+            "mode": "fixed",
+            "fixedColor": "orange"
+          }
+        },
+        "overrides": []
+      },
+      "options": {
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ]
+        },
+        "colorMode": "value",
+        "graphMode": "none",
+        "textMode": "value"
+      }
+    },
+    {
+      "id": 5,
+      "title": "① 团队 Token 消耗趋势 (窗口化, 按 type)",
+      "type": "timeseries",
+      "datasource": {
+        "type": "loki",
+        "uid": "loki-claude-code"
+      },
+      "description": "每个时间桶的实际 token 消耗(非累计)。用于看每天/每小时消耗多少、规划资源。注:team 标签不在 Loki 日志上,此处为团队整体合计,无法按子团队拆分。",
+      "gridPos": {
+        "h": 8,
+        "w": 12,
+        "x": 0,
+        "y": 4
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "editorMode": "code",
+          "expr": "sum(sum_over_time({service_name=\"claude-code\"} | event_name=\"api_request\" | process_pid=~\"$process\" | unwrap input_tokens [$__interval]))",
+          "queryType": "range",
+          "datasource": {
+            "type": "loki",
+            "uid": "loki-claude-code"
+          },
+          "range": true,
+          "legendFormat": "fresh_input"
+        },
+        {
+          "refId": "B",
+          "editorMode": "code",
+          "expr": "sum(sum_over_time({service_name=\"claude-code\"} | event_name=\"api_request\" | process_pid=~\"$process\" | unwrap output_tokens [$__interval]))",
+          "queryType": "range",
+          "datasource": {
+            "type": "loki",
+            "uid": "loki-claude-code"
+          },
+          "range": true,
+          "legendFormat": "output"
+        },
+        {
+          "refId": "C",
+          "editorMode": "code",
+          "expr": "sum(sum_over_time({service_name=\"claude-code\"} | event_name=\"api_request\" | process_pid=~\"$process\" | unwrap cache_read_tokens [$__interval]))",
+          "queryType": "range",
+          "datasource": {
+            "type": "loki",
+            "uid": "loki-claude-code"
+          },
+          "range": true,
+          "legendFormat": "cache_read"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "short",
+          "custom": {
+            "drawStyle": "bars",
+            "fillOpacity": 70,
+            "stacking": {
+              "mode": "normal"
+            }
+          }
+        },
+        "overrides": []
+      },
+      "options": {
+        "legend": {
+          "displayMode": "list",
+          "placement": "bottom",
+          "calcs": [
+            "sum"
+          ]
+        },
+        "tooltip": {
+          "mode": "multi",
+          "sort": "desc"
+        }
+      }
+    },
+    {
+      "id": 6,
+      "title": "① 活跃度时间分布 (每小时事件密度)",
+      "type": "timeseries",
+      "datasource": {
+        "type": "loki",
+        "uid": "loki-claude-code"
+      },
+      "description": "按时间桶的全部活动事件(prompt/api/工具/skill 等)密度。跨多天观察可肉眼识别团队高峰时段(几点/周几最忙),用于申请/错峰资源。桶大小随时间范围自适应($__interval),拉到 7d 即每桶≈1-3h。",
+      "gridPos": {
+        "h": 8,
+        "w": 12,
+        "x": 12,
+        "y": 4
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "editorMode": "code",
+          "expr": "sum(count_over_time({service_name=\"claude-code\"} | process_pid=~\"$process\" [$__interval]))",
+          "queryType": "range",
+          "datasource": {
+            "type": "loki",
+            "uid": "loki-claude-code"
+          },
+          "range": true,
+          "legendFormat": "全部活动事件"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "short",
+          "custom": {
+            "drawStyle": "bars",
+            "fillOpacity": 80,
+            "lineWidth": 1,
+            "gradientMode": "opacity"
+          },
+          "color": {
+            "mode": "fixed",
+            "fixedColor": "super-light-blue"
+          }
+        },
+        "overrides": []
+      },
+      "options": {
+        "legend": {
+          "displayMode": "hidden"
+        },
+        "tooltip": {
+          "mode": "single"
+        }
+      }
+    },
+    {
+      "id": 7,
+      "title": "② Skill 使用排行 (具体名)",
+      "type": "bargauge",
+      "datasource": {
+        "type": "loki",
+        "uid": "loki-claude-code"
+      },
+      "description": "来自 skill_activated 事件的真实 skill_name。这是唯一能拿到具体 skill 名的数据源(tool_result 不带 skill_name)。",
+      "gridPos": {
+        "h": 8,
+        "w": 8,
+        "x": 0,
+        "y": 12
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "editorMode": "code",
+          "expr": "topk(15, sum by(skill_name)(count_over_time({service_name=\"claude-code\"} | event_name=\"skill_activated\" | process_pid=~\"$process\" [$__range])))",
+          "queryType": "instant",
+          "datasource": {
+            "type": "loki",
+            "uid": "loki-claude-code"
+          },
+          "instant": true,
+          "range": false,
+          "legendFormat": "{{skill_name}}"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "short",
+          "color": {
+            "mode": "continuous-GrYlRd"
+          },
+          "noValue": "暂无 skill_activated 数据"
+        },
+        "overrides": []
+      },
+      "options": {
+        "displayMode": "gradient",
+        "orientation": "horizontal",
+        "showUnfilled": true,
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ]
+        }
+      }
+    },
+    {
+      "id": 8,
+      "title": "② Skill 来源分布 (skill_source)",
+      "type": "piechart",
+      "datasource": {
+        "type": "loki",
+        "uid": "loki-claude-code"
+      },
+      "description": "plugin / user / project 等来源占比。看大家用的是官方插件还是自建 skill。",
+      "gridPos": {
+        "h": 8,
+        "w": 8,
+        "x": 8,
+        "y": 12
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "editorMode": "code",
+          "expr": "sum by(skill_source)(count_over_time({service_name=\"claude-code\"} | event_name=\"skill_activated\" | process_pid=~\"$process\" [$__range]))",
+          "queryType": "instant",
+          "datasource": {
+            "type": "loki",
+            "uid": "loki-claude-code"
+          },
+          "instant": true,
+          "range": false,
+          "legendFormat": "{{skill_source}}"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "short",
+          "noValue": "暂无数据"
+        },
+        "overrides": []
+      },
+      "options": {
+        "pieType": "donut",
+        "legend": {
+          "displayMode": "table",
+          "placement": "right",
+          "values": [
+            "value",
+            "percent"
+          ]
+        },
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ]
+        }
+      }
+    },
+    {
+      "id": 9,
+      "title": "② Skill 触发方式 (invocation_trigger)",
+      "type": "piechart",
+      "datasource": {
+        "type": "loki",
+        "uid": "loki-claude-code"
+      },
+      "description": "自动触发 vs 用户显式调用的比例。",
+      "gridPos": {
+        "h": 8,
+        "w": 8,
+        "x": 16,
+        "y": 12
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "editorMode": "code",
+          "expr": "sum by(invocation_trigger)(count_over_time({service_name=\"claude-code\"} | event_name=\"skill_activated\" | process_pid=~\"$process\" [$__range]))",
+          "queryType": "instant",
+          "datasource": {
+            "type": "loki",
+            "uid": "loki-claude-code"
+          },
+          "instant": true,
+          "range": false,
+          "legendFormat": "{{invocation_trigger}}"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "short",
+          "noValue": "暂无数据"
+        },
+        "overrides": []
+      },
+      "options": {
+        "pieType": "donut",
+        "legend": {
+          "displayMode": "table",
+          "placement": "right",
+          "values": [
+            "value",
+            "percent"
+          ]
+        },
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ]
+        }
+      }
+    },
+    {
+      "id": 10,
+      "title": "② 模型选择偏好 (按调用次数)",
+      "type": "piechart",
+      "datasource": {
+        "type": "loki",
+        "uid": "loki-claude-code"
+      },
+      "description": "各模型的 api_request 次数占比,反映团队默认模型偏好。注:Skill/Tool 事件不带 model,无法做'某 skill 偏好哪个模型'的交叉分析。",
+      "gridPos": {
+        "h": 8,
+        "w": 12,
+        "x": 0,
+        "y": 20
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "editorMode": "code",
+          "expr": "sum by(model)(count_over_time({service_name=\"claude-code\"} | event_name=\"api_request\" | process_pid=~\"$process\" [$__range]))",
+          "queryType": "instant",
+          "datasource": {
+            "type": "loki",
+            "uid": "loki-claude-code"
+          },
+          "instant": true,
+          "range": false,
+          "legendFormat": "{{model}}"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "short",
+          "noValue": "暂无数据"
+        },
+        "overrides": []
+      },
+      "options": {
+        "pieType": "pie",
+        "legend": {
+          "displayMode": "table",
+          "placement": "right",
+          "values": [
+            "value",
+            "percent"
+          ]
+        },
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ]
+        }
+      }
+    },
+    {
+      "id": 11,
+      "title": "② 模型 Output Token 占比",
+      "type": "bargauge",
+      "datasource": {
+        "type": "loki",
+        "uid": "loki-claude-code"
+      },
+      "description": "各模型贡献的 output token 量。配合上面的次数占比,看是'多次轻量调用'还是'少次重量调用'。",
+      "gridPos": {
+        "h": 8,
+        "w": 12,
+        "x": 12,
+        "y": 20
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "editorMode": "code",
+          "expr": "sum by(model)(sum_over_time({service_name=\"claude-code\"} | event_name=\"api_request\" | process_pid=~\"$process\" | unwrap output_tokens [$__range]))",
+          "queryType": "instant",
+          "datasource": {
+            "type": "loki",
+            "uid": "loki-claude-code"
+          },
+          "instant": true,
+          "range": false,
+          "legendFormat": "{{model}}"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "short",
+          "color": {
+            "mode": "continuous-BlPu"
+          },
+          "noValue": "暂无数据"
+        },
+        "overrides": []
+      },
+      "options": {
+        "displayMode": "gradient",
+        "orientation": "horizontal",
+        "showUnfilled": true,
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ]
+        }
+      }
+    },
+    {
+      "id": 12,
+      "title": "③ 工具调用频次 (按 tool_name)",
+      "type": "bargauge",
+      "datasource": {
+        "type": "loki",
+        "uid": "loki-claude-code"
+      },
+      "description": "各工具调用次数排行。最高的就是最常自动化的环节。",
+      "gridPos": {
+        "h": 8,
+        "w": 8,
+        "x": 0,
+        "y": 28
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "editorMode": "code",
+          "expr": "sum by(tool_name)(count_over_time({service_name=\"claude-code\"} | event_name=\"tool_result\" | process_pid=~\"$process\" [$__range]))",
+          "queryType": "instant",
+          "datasource": {
+            "type": "loki",
+            "uid": "loki-claude-code"
+          },
+          "instant": true,
+          "range": false,
+          "legendFormat": "{{tool_name}}"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "short",
+          "color": {
+            "mode": "continuous-GrYlRd"
+          },
+          "noValue": "暂无数据"
+        },
+        "overrides": []
+      },
+      "options": {
+        "displayMode": "gradient",
+        "orientation": "horizontal",
+        "showUnfilled": true,
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ]
+        }
+      }
+    },
+    {
+      "id": 13,
+      "title": "③ 工具类别频次 (自动化 vs 基础)",
+      "type": "piechart",
+      "datasource": {
+        "type": "loki",
+        "uid": "loki-claude-code"
+      },
+      "description": "高阶自动化工具(Agent/Skill/MCP) vs 基础读写工具的比例。自动化占比越高,说明越多重活被工具接管。",
+      "gridPos": {
+        "h": 8,
+        "w": 8,
+        "x": 8,
+        "y": 28
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "editorMode": "code",
+          "expr": "sum(count_over_time({service_name=\"claude-code\"} | event_name=\"tool_result\" | process_pid=~\"$process\" | tool_name=~\"Agent|Skill|mcp_tool|ToolSearch\" [$__range]))",
+          "queryType": "instant",
+          "datasource": {
+            "type": "loki",
+            "uid": "loki-claude-code"
+          },
+          "instant": true,
+          "range": false,
+          "legendFormat": "自动化 (Agent/Skill/MCP/Search)"
+        },
+        {
+          "refId": "B",
+          "editorMode": "code",
+          "expr": "sum(count_over_time({service_name=\"claude-code\"} | event_name=\"tool_result\" | process_pid=~\"$process\" | tool_name=~\"Read|Write|Edit|Bash\" [$__range]))",
+          "queryType": "instant",
+          "datasource": {
+            "type": "loki",
+            "uid": "loki-claude-code"
+          },
+          "instant": true,
+          "range": false,
+          "legendFormat": "基础 (Read/Write/Edit/Bash)"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "short",
+          "noValue": "暂无数据"
+        },
+        "overrides": []
+      },
+      "options": {
+        "pieType": "donut",
+        "legend": {
+          "displayMode": "table",
+          "placement": "bottom",
+          "values": [
+            "value",
+            "percent"
+          ]
+        },
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ]
+        }
+      }
+    },
+    {
+      "id": 14,
+      "title": "③ 工具成功率 (按 tool_name)",
+      "type": "bargauge",
+      "datasource": {
+        "type": "loki",
+        "uid": "loki-claude-code"
+      },
+      "description": "success=true 占比。偏低的工具说明该自动化环节常失败、需要人工兜底。注:100% 失败的工具(若有)不会出现在此(分子无该标签)。",
+      "gridPos": {
+        "h": 8,
+        "w": 8,
+        "x": 16,
+        "y": 28
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "editorMode": "code",
+          "expr": "sum by(tool_name)(count_over_time({service_name=\"claude-code\"} | event_name=\"tool_result\" | process_pid=~\"$process\" | success=\"true\" [$__range])) / sum by(tool_name)(count_over_time({service_name=\"claude-code\"} | event_name=\"tool_result\" | process_pid=~\"$process\" [$__range]))",
+          "queryType": "instant",
+          "datasource": {
+            "type": "loki",
+            "uid": "loki-claude-code"
+          },
+          "instant": true,
+          "range": false,
+          "legendFormat": "{{tool_name}}"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "percentunit",
+          "min": 0,
+          "max": 1,
+          "color": {
+            "mode": "thresholds"
+          },
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "red",
+                "value": null
+              },
+              {
+                "color": "orange",
+                "value": 0.8
+              },
+              {
+                "color": "green",
+                "value": 0.95
+              }
+            ]
+          },
+          "noValue": "暂无数据"
+        },
+        "overrides": []
+      },
+      "options": {
+        "displayMode": "lcd",
+        "orientation": "horizontal",
+        "showUnfilled": true,
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ]
+        }
+      }
+    },
+    {
+      "id": 16,
+      "title": "① 活跃高峰透视 (小时 × 星期, 折叠热力图)",
+      "type": "table",
+      "datasource": {
+        "type": "loki",
+        "uid": "loki-claude-code"
+      },
+      "description": "把整个时间范围内的全部活动事件(prompt/api/工具/skill 等)按【一天中的小时(北京时间 0-23)×星期几】折叠累加,格子越红=该时段历史上越忙。用于识别团队稳定的高峰时段(几点/周几),指导错峰与资源申请。空白时段=该范围内无活动。注:仅展示有活动的小时行,团队铺开后会填满更多小时与星期列。",
+      "gridPos": {
+        "h": 14,
+        "w": 24,
+        "x": 0,
+        "y": 36
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "editorMode": "code",
+          "expr": "sum by(hour,dow)(count_over_time({service_name=\"claude-code\"} | process_pid=~\"$process\" | label_format hour=`{{ date \"15\" (unixToTime (printf \"%d\" (add 28800 (unixEpoch (toDate \"2006-01-02T15:04:05.000Z\" .event_timestamp))))) }}`,dow=`{{ date \"Mon\" (unixToTime (printf \"%d\" (add 28800 (unixEpoch (toDate \"2006-01-02T15:04:05.000Z\" .event_timestamp))))) }}` [$__range]))",
+          "queryType": "instant",
+          "datasource": {
+            "type": "loki",
+            "uid": "loki-claude-code"
+          },
+          "instant": true,
+          "range": false
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "short",
+          "min": 0,
+          "color": {
+            "mode": "continuous-GrYlRd"
+          },
+          "custom": {
+            "align": "center",
+            "cellOptions": {
+              "type": "color-background",
+              "mode": "gradient"
+            },
+            "width": 54
+          }
+        },
+        "overrides": [
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "时段(北京)＼周"
+            },
+            "properties": [
+              {
+                "id": "custom.cellOptions",
+                "value": {
+                  "type": "auto"
+                }
+              },
+              {
+                "id": "custom.width",
+                "value": 130
+              },
+              {
+                "id": "color",
+                "value": {
+                  "mode": "fixed",
+                  "fixedColor": "text"
+                }
+              }
+            ]
+          }
+        ]
+      },
+      "options": {
+        "showHeader": true,
+        "cellHeight": "sm",
+        "footer": {
+          "show": false
+        }
+      },
+      "transformations": [
+        {
+          "id": "labelsToFields",
+          "options": {
+            "mode": "columns"
+          }
+        },
+        {
+          "id": "merge",
+          "options": {}
+        },
+        {
+          "id": "groupingToMatrix",
+          "options": {
+            "columnField": "dow",
+            "rowField": "hour",
+            "valueField": "Value",
+            "emptyValue": "zero"
+          }
+        },
+        {
+          "id": "sortBy",
+          "options": {
+            "fields": {},
+            "sort": [
+              {
+                "field": "hour\\dow",
+                "desc": false
+              }
+            ]
+          }
+        },
+        {
+          "id": "organize",
+          "options": {
+            "excludeByName": {},
+            "indexByName": {
+              "hour\\dow": 0,
+              "Mon": 1,
+              "Tue": 2,
+              "Wed": 3,
+              "Thu": 4,
+              "Fri": 5,
+              "Sat": 6,
+              "Sun": 7
+            },
+            "renameByName": {
+              "hour\\dow": "时段(北京)＼周"
+            }
+          }
+        }
+      ]
+    },
+    {
+      "id": 15,
+      "title": "③ 工具调用频次趋势 (按 tool_name)",
+      "type": "timeseries",
+      "datasource": {
+        "type": "loki",
+        "uid": "loki-claude-code"
+      },
+      "description": "各工具调用量随时间分布,看自动化工具的使用是否在增长。",
+      "gridPos": {
+        "h": 8,
+        "w": 24,
+        "x": 0,
+        "y": 50
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "editorMode": "code",
+          "expr": "sum by(tool_name)(count_over_time({service_name=\"claude-code\"} | event_name=\"tool_result\" | process_pid=~\"$process\" [$__interval]))",
+          "queryType": "range",
+          "datasource": {
+            "type": "loki",
+            "uid": "loki-claude-code"
+          },
+          "range": true,
+          "legendFormat": "{{tool_name}}"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "short",
+          "custom": {
+            "drawStyle": "bars",
+            "fillOpacity": 60,
+            "stacking": {
+              "mode": "normal"
+            }
+          }
+        },
+        "overrides": []
+      },
+      "options": {
+        "legend": {
+          "displayMode": "table",
+          "placement": "right",
+          "calcs": [
+            "sum"
+          ]
+        },
+        "tooltip": {
+          "mode": "multi",
+          "sort": "desc"
+        }
+      }
+    }
+  ],
+  "refresh": "30s",
+  "schemaVersion": 39,
+  "tags": [
+    "claude-code",
+    "team",
+    "analytics"
+  ],
+  "templating": {
+    "list": [
+      {
+        "name": "process",
+        "type": "textbox",
+        "label": "Process (PID, 默认全部)",
+        "current": {
+          "text": ".*",
+          "value": ".*"
+        },
+        "query": ".*"
+      }
+    ]
+  },
+  "time": {
+    "from": "now-7d",
+    "to": "now"
+  },
+  "timezone": "browser",
+  "title": "Claude Code - 团队分析 (Team Analytics)",
+  "uid": "claude-code-team-analytics"
+}

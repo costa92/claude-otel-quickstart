@@ -2,15 +2,14 @@
   "title": "Claude Code Overview",
   "uid": "claude-code-overview",
   "tags": [
-    "claude-code",
-    "overview"
+    "claude-code"
   ],
   "timezone": "browser",
   "schemaVersion": 39,
   "version": 1,
   "refresh": "10s",
   "time": {
-    "from": "now-1h",
+    "from": "now-15m",
     "to": "now"
   },
   "templating": {
@@ -51,7 +50,7 @@
       "targets": [
         {
           "refId": "A",
-          "expr": "sum(claude_code_cost_usage_USD_total{team=~\"$team\"})"
+          "expr": "sum(last_over_time(claude_code_cost_usage_USD_total{team=~\"$team\"}[$__range]))"
         }
       ],
       "options": {
@@ -86,7 +85,8 @@
                 "value": 50
               }
             ]
-          }
+          },
+          "noValue": "0"
         }
       }
     },
@@ -107,7 +107,7 @@
       "targets": [
         {
           "refId": "A",
-          "expr": "sum(claude_code_session_count_total{team=~\"$team\"})"
+          "expr": "sum(last_over_time(claude_code_session_count_total{team=~\"$team\"}[$__range]))"
         }
       ],
       "options": {
@@ -120,7 +120,8 @@
       },
       "fieldConfig": {
         "defaults": {
-          "unit": "short"
+          "unit": "short",
+          "noValue": "0"
         }
       }
     },
@@ -141,7 +142,7 @@
       "targets": [
         {
           "refId": "A",
-          "expr": "sum(claude_code_active_time_seconds_total{team=~\"$team\"})"
+          "expr": "sum(last_over_time(claude_code_active_time_seconds_total{team=~\"$team\"}[$__range]))"
         }
       ],
       "options": {
@@ -154,7 +155,8 @@
       },
       "fieldConfig": {
         "defaults": {
-          "unit": "s"
+          "unit": "s",
+          "noValue": "0"
         }
       }
     },
@@ -175,7 +177,7 @@
       "targets": [
         {
           "refId": "A",
-          "expr": "sum(claude_code_token_usage_tokens_total{team=~\"$team\"})"
+          "expr": "sum(last_over_time(claude_code_token_usage_tokens_total{team=~\"$team\"}[$__range]))"
         }
       ],
       "options": {
@@ -188,7 +190,8 @@
       },
       "fieldConfig": {
         "defaults": {
-          "unit": "short"
+          "unit": "short",
+          "noValue": "0"
         }
       }
     },
@@ -258,8 +261,8 @@
     {
       "id": 7,
       "type": "bargauge",
-      "title": "Tokens by Subagent",
-      "description": "按 subagent 类型拆分 token(general-purpose / Explore / Plan / 自定义)。Claude 2.1.153 实测: agent_name 是具体名,skill_name/plugin_name 是分类(永远只有 third-party 一根柱)",
+      "title": "Tokens by Skill Category",
+      "description": "实测 skill_name 是分类(third-party/built-in)而非具体 skill 名。需要 OTEL_LOG_TOOL_DETAILS=1 且会话有 Skill 调用",
       "datasource": {
         "type": "prometheus",
         "uid": "prom-claude-code"
@@ -273,8 +276,8 @@
       "targets": [
         {
           "refId": "A",
-          "expr": "sum by (agent_name) (claude_code_token_usage_tokens_total{agent_name!=\"\",team=~\"$team\"})",
-          "legendFormat": "{{agent_name}}"
+          "expr": "sum by (skill_name) (claude_code_token_usage_tokens_total{skill_name!=\"\",team=~\"$team\"})",
+          "legendFormat": "{{skill_name}}"
         }
       ],
       "options": {
@@ -299,8 +302,8 @@
     {
       "id": 8,
       "type": "bargauge",
-      "title": "Cost by Model (USD)",
-      "description": "按模型拆分成本(可看哪些模型在烧钱)。plugin_name 是分类永远单色所以换了",
+      "title": "Cost by Plugin Category (USD)",
+      "description": "plugin_name 也是分类。要看具体 plugin 调用得走 Loki 查 tool_result events",
       "datasource": {
         "type": "prometheus",
         "uid": "prom-claude-code"
@@ -314,8 +317,8 @@
       "targets": [
         {
           "refId": "A",
-          "expr": "sum by (model) (claude_code_cost_usage_USD_total{team=~\"$team\"})",
-          "legendFormat": "{{model}}"
+          "expr": "sum by (plugin_name) (claude_code_cost_usage_USD_total{plugin_name!=\"\",team=~\"$team\"})",
+          "legendFormat": "{{plugin_name}}"
         }
       ],
       "options": {
@@ -341,8 +344,8 @@
     {
       "id": 9,
       "type": "bargauge",
-      "title": "Top 10 Users by Cost (USD, 1h)",
-      "description": "按 user_email 拆分成本。panel 7 已经按 subagent 拆分,这里换 user 维度看钱花在哪个人身上",
+      "title": "Top 10 Subagents by Tokens (具体名)",
+      "description": "agent_name 是具体 subagent 名(general-purpose / 自定义 agent)。这条最有用",
       "datasource": {
         "type": "prometheus",
         "uid": "prom-claude-code"
@@ -356,8 +359,8 @@
       "targets": [
         {
           "refId": "A",
-          "expr": "topk(10, sum by (user_email) (claude_code_cost_usage_USD_total{team=~\"$team\"}))",
-          "legendFormat": "{{user_email}}"
+          "expr": "topk(10, sum by (agent_name) (claude_code_token_usage_tokens_total{agent_name!=\"\",team=~\"$team\"}))",
+          "legendFormat": "{{agent_name}}"
         }
       ],
       "options": {
@@ -372,13 +375,95 @@
       },
       "fieldConfig": {
         "defaults": {
-          "unit": "currencyUSD",
-          "decimals": 4,
+          "unit": "short",
           "color": {
             "mode": "continuous-GrYlRd"
           }
         }
       }
+    },
+    {
+      "id": 10,
+      "type": "bargauge",
+      "title": "MCP Server Call Frequency (from Loki logs)",
+      "description": "MCP 调用频率,按 server 分组。来自 Loki mcp_server_connection 事件的 server_name label",
+      "datasource": {
+        "type": "loki",
+        "uid": "loki-claude-code"
+      },
+      "gridPos": {
+        "x": 0,
+        "y": 29,
+        "w": 24,
+        "h": 8
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "expr": "sum by (server_name) (count_over_time({service_name=\"claude-code\"} |= `mcp_server_connection` [1h]))",
+          "legendFormat": "{{server_name}}"
+        }
+      ],
+      "options": {
+        "orientation": "horizontal",
+        "displayMode": "gradient",
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ]
+        },
+        "showUnfilled": true
+      },
+      "fieldConfig": {
+        "defaults": {
+          "unit": "short",
+          "color": {
+            "mode": "continuous-purples"
+          }
+        }
+      }
+    },
+    {
+      "id": 11,
+      "type": "logs",
+      "title": "Recent MCP Tool Calls (raw stream)",
+      "description": "最近 MCP 调用的原始事件流(server + tool_name + 用时等)",
+      "datasource": {
+        "type": "loki",
+        "uid": "loki-claude-code"
+      },
+      "gridPos": {
+        "x": 0,
+        "y": 37,
+        "w": 24,
+        "h": 12
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "expr": "{service_name=\"claude-code\"} | event_name=\"tool_result\" | tool_name=\"mcp_tool\" | line_format `{{ .tool_name }} -> ok={{ .success }} dur={{ .duration_ms }}ms`"
+        }
+      ],
+      "options": {
+        "showTime": true,
+        "showLabels": false,
+        "sortOrder": "Descending",
+        "wrapLogMessage": true
+      }
+    }
+  ],
+  "links": [
+    {
+      "asDropdown": true,
+      "icon": "apps",
+      "includeVars": true,
+      "keepTime": true,
+      "tags": [
+        "claude-code"
+      ],
+      "targetBlank": false,
+      "title": "📊 Claude Code 面板",
+      "type": "dashboards"
     }
   ]
 }
