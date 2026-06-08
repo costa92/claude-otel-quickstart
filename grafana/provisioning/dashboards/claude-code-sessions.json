@@ -52,7 +52,7 @@
     {
       "id": 1,
       "type": "stat",
-      "title": "Active Prompts (1h)",
+      "title": "Active Prompts (区间)",
       "description": "1h 内 user_prompt 事件数 = 发了多少次问。plugin_loaded 24h 才 3 条太稀疏,改用 user_prompt 让 5m/1h 窗口都有数据。",
       "datasource": {
         "type": "loki",
@@ -67,7 +67,7 @@
       "targets": [
         {
           "refId": "A",
-          "expr": "sum(count_over_time({service_name=\"claude-code\"} | event_name=\"user_prompt\" | process_pid=~\"$process\" [1h]))"
+          "expr": "sum(count_over_time({service_name=\"claude-code\"} | event_name=\"user_prompt\" | process_pid=~\"$process\" [$__range]))"
         }
       ],
       "options": {
@@ -88,7 +88,7 @@
     {
       "id": 2,
       "type": "stat",
-      "title": "Top User (1h, by prompts)",
+      "title": "Top User (区间, by prompts)",
       "description": "1h 内发问最多的 user (OTel SDK 发的是 user_id, 不是 user_email)。",
       "datasource": {
         "type": "loki",
@@ -103,7 +103,7 @@
       "targets": [
         {
           "refId": "A",
-          "expr": "topk(1, sum by (user_id) (count_over_time({service_name=\"claude-code\"} | event_name=\"user_prompt\" | process_pid=~\"$process\" [1h])))",
+          "expr": "topk(1, sum by (user_id) (count_over_time({service_name=\"claude-code\"} | event_name=\"user_prompt\" | process_pid=~\"$process\" [$__range])))",
           "legendFormat": "{{user_id}}"
         }
       ],
@@ -126,7 +126,7 @@
     {
       "id": 3,
       "type": "stat",
-      "title": "Top Device (1h, by prompts)",
+      "title": "Top Device (区间, by prompts)",
       "description": "1h 内最常用的设备(arch+os+version)。要细到 host.name 需设 OTEL_RESOURCE_ATTRIBUTES。",
       "datasource": {
         "type": "loki",
@@ -141,7 +141,7 @@
       "targets": [
         {
           "refId": "A",
-          "expr": "topk(1, sum by (host_arch, os_type, os_version) (count_over_time({service_name=\"claude-code\"} | event_name=\"user_prompt\" | process_pid=~\"$process\" [1h])))",
+          "expr": "topk(1, sum by (host_arch, os_type, os_version) (count_over_time({service_name=\"claude-code\"} | event_name=\"user_prompt\" | process_pid=~\"$process\" [$__range])))",
           "legendFormat": "{{host_arch}} {{os_type}} {{os_version}}"
         }
       ],
@@ -164,7 +164,7 @@
     {
       "id": 4,
       "type": "stat",
-      "title": "Top Claude Version (1h, by prompts)",
+      "title": "Top Claude Version (区间, by prompts)",
       "description": "1h 内团队主要用的 Claude 版本。",
       "datasource": {
         "type": "loki",
@@ -179,7 +179,7 @@
       "targets": [
         {
           "refId": "A",
-          "expr": "topk(1, sum by (service_version) (count_over_time({service_name=\"claude-code\"} | event_name=\"user_prompt\" | process_pid=~\"$process\" [1h])))",
+          "expr": "topk(1, sum by (service_version) (count_over_time({service_name=\"claude-code\"} | event_name=\"user_prompt\" | process_pid=~\"$process\" [$__range])))",
           "legendFormat": "v{{service_version}}"
         }
       ],
@@ -202,7 +202,7 @@
     {
       "id": 5,
       "type": "table",
-      "title": "User Prompts List (1h, with session metadata)",
+      "title": "User Prompts List (区间, with session metadata)",
       "description": "1h 内每次 user_prompt 一行: Started / Prompt ID / User / Arch / OS / Claude / Terminal / Process / Len。plugin_loaded 24h 才 3 条,改用 user_prompt 让 5m/1h 都有数据。",
       "datasource": {
         "type": "loki",

@@ -1184,7 +1184,7 @@
         "type": "loki",
         "uid": "loki-claude-code"
       },
-      "description": "当前 prompt 下的工具/Skill 调用。Request Params 同时展示 tool_parameters 和 tool_input(中间用 | input= 分隔),覆盖: Bash(命令+描述)、Read/Write/Edit(文件路径+limit)、Glob/Grep(pattern)、MCP(server.tool+query/params)、Skill(名称+trigger)。Claude 2.1.153 + OTEL_LOG_TOOL_DETAILS=1 实测四种 tool 都报这两个 attribute,除非都缺才 fallback 到 [metadata only]。",
+      "description": "当前 prompt 下的工具/Skill 调用。Request Params 同时展示 tool_parameters 和 tool_input(中间用 | input= 分隔),覆盖: Bash(命令+描述)、Read/Write/Edit(文件路径+limit)、Glob/Grep(pattern)、MCP(server.tool+query/params)、Skill(名称+trigger)。Claude 2.1.153 + OTEL_LOG_TOOL_DETAILS=1 实测四种 tool 都报这两个 attribute,除非都缺才 fallback 到 [metadata only]。 含 tool_decision(权限批准/谁放行:config 自动 vs user 手动)。OK 列对决策行显示 accept/reject。",
       "fieldConfig": {
         "defaults": {
           "custom": {
@@ -1329,6 +1329,17 @@
         {
           "expr": "{service_name=\"claude-code\"} | event_name=\"skill_activated\" | prompt_id=\"$prompt_id\" | process_pid=~\"$process\" | line_format ` {\"at\":{{printf \"%q\" (date \"2006-01-02 15:04:05\" (unixToTime (printf \"%d\" (add 28800 (unixEpoch (toDate \"2006-01-02T15:04:05.000Z\" .event_timestamp))))))}},\"event\":\"skill_activated\",\"tool\":\"Skill\",\"request_params\":{{printf \"%q\" (printf \"skill_name=%s skill_source=%s trigger=%s\" .skill_name .skill_source .invocation_trigger)}},\"param_status\":\"metadata\",\"success\":\"true\",\"duration_ms\":0,\"input_bytes\":0,\"result_bytes\":0,\"tool_use_id\":\"\"}`",
           "refId": "B"
+        },
+        {
+          "refId": "C",
+          "editorMode": "code",
+          "expr": "{service_name=\"claude-code\"} | event_name=\"tool_decision\" | prompt_id=\"$prompt_id\" | process_pid=~\"$process\" | line_format ` {\"at\":{{printf \"%q\" (date \"2006-01-02 15:04:05\" (unixToTime (printf \"%d\" (add 28800 (unixEpoch (toDate \"2006-01-02T15:04:05.000Z\" .event_timestamp))))))}},\"event\":\"tool_decision\",\"tool\":{{printf \"%q\" .tool_name}},\"request_params\":{{printf \"%q\" (printf \"decision=%s source=%s\" .decision .source)}},\"param_status\":\"decision\",\"success\":{{printf \"%q\" .decision}},\"duration_ms\":0,\"input_bytes\":0,\"result_bytes\":0,\"tool_use_id\":\"\"}`",
+          "datasource": {
+            "type": "loki",
+            "uid": "loki-claude-code"
+          },
+          "queryType": "range",
+          "range": true
         }
       ],
       "title": "Tool Calls: Agent / Skill / MCP / Built-in Tools",

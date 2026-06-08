@@ -1122,6 +1122,61 @@
         "orientation": "horizontal",
         "displayMode": "gradient"
       }
+    },
+    {
+      "id": 18,
+      "type": "piechart",
+      "title": "成本归因 by query_source (交互 vs 后台自动)",
+      "datasource": {
+        "type": "loki",
+        "uid": "loki-claude-code"
+      },
+      "description": "按请求来源拆成本:repl_main_thread(你的交互) / sdk / agent(子代理) / away_summary·prompt_suggestion·generate_session_title(后台自动调用)。后台烧钱此前完全不可见 —— 这是本页之前最大的成本盲点。",
+      "gridPos": {
+        "h": 8,
+        "w": 12,
+        "x": 12,
+        "y": 39
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "editorMode": "code",
+          "expr": "sum by(query_source)(sum_over_time({service_name=\"claude-code\"} | event_name=\"api_request\" | process_pid=~\"$process\" | unwrap cost_usd [$__range]))",
+          "datasource": {
+            "type": "loki",
+            "uid": "loki-claude-code"
+          },
+          "queryType": "instant",
+          "instant": true,
+          "range": false,
+          "legendFormat": "{{query_source}}"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "currencyUSD",
+          "decimals": 4,
+          "noValue": "无数据"
+        },
+        "overrides": []
+      },
+      "options": {
+        "pieType": "pie",
+        "legend": {
+          "displayMode": "table",
+          "placement": "right",
+          "values": [
+            "value",
+            "percent"
+          ]
+        },
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ]
+        }
+      }
     }
   ]
 }

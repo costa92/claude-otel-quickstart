@@ -11,7 +11,7 @@
   "version": 1,
   "refresh": "10s",
   "time": {
-    "from": "now-1h",
+    "from": "now-7d",
     "to": "now"
   },
   "templating": {
@@ -300,7 +300,7 @@
       },
       "gridPos": {
         "x": 0,
-        "y": 13,
+        "y": 31,
         "w": 24,
         "h": 14
       },
@@ -320,6 +320,333 @@
         "prettifyLogMessage": true,
         "dedupStrategy": "none"
       }
+    },
+    {
+      "id": 8,
+      "type": "bargauge",
+      "title": "Subagent 类型使用排行 (agent_type, 来自 subagent_completed)",
+      "datasource": {
+        "type": "loki",
+        "uid": "loki-claude-code"
+      },
+      "description": "各子代理类型(general-purpose / Explore / 自定义 agent 等)的运行次数。来自 subagent_completed —— 现有 Prometheus agent_name 是计费名,这里是真正的类型。",
+      "gridPos": {
+        "h": 8,
+        "w": 12,
+        "x": 0,
+        "y": 13
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "editorMode": "code",
+          "expr": "topk(15, sum by(agent_type)(count_over_time({service_name=\"claude-code\"} | event_name=\"subagent_completed\" [$__range])))",
+          "datasource": {
+            "type": "loki",
+            "uid": "loki-claude-code"
+          },
+          "queryType": "instant",
+          "instant": true,
+          "range": false,
+          "legendFormat": "{{agent_type}}"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "short",
+          "color": {
+            "mode": "continuous-GrYlRd"
+          },
+          "noValue": "区间内无子代理完成事件(较稀疏,试着拉到 7d/30d)"
+        },
+        "overrides": []
+      },
+      "options": {
+        "displayMode": "gradient",
+        "orientation": "horizontal",
+        "showUnfilled": true,
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ]
+        }
+      }
+    },
+    {
+      "id": 9,
+      "type": "piechart",
+      "title": "Subagent 模型分布",
+      "datasource": {
+        "type": "loki",
+        "uid": "loki-claude-code"
+      },
+      "description": "子代理实际跑在哪个模型上(subagent_completed.model)。",
+      "gridPos": {
+        "h": 8,
+        "w": 6,
+        "x": 12,
+        "y": 13
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "editorMode": "code",
+          "expr": "sum by(model)(count_over_time({service_name=\"claude-code\"} | event_name=\"subagent_completed\" [$__range]))",
+          "datasource": {
+            "type": "loki",
+            "uid": "loki-claude-code"
+          },
+          "queryType": "instant",
+          "instant": true,
+          "range": false,
+          "legendFormat": "{{model}}"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "short",
+          "noValue": "无数据"
+        },
+        "overrides": []
+      },
+      "options": {
+        "pieType": "donut",
+        "legend": {
+          "displayMode": "table",
+          "placement": "right",
+          "values": [
+            "value",
+            "percent"
+          ]
+        },
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ]
+        }
+      }
+    },
+    {
+      "id": 10,
+      "type": "piechart",
+      "title": "Subagent 来源 (built-in vs 自定义)",
+      "datasource": {
+        "type": "loki",
+        "uid": "loki-claude-code"
+      },
+      "description": "agent_source:built-in(内置) / 用户自定义。看团队多大程度在用自建 agent。",
+      "gridPos": {
+        "h": 8,
+        "w": 6,
+        "x": 18,
+        "y": 13
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "editorMode": "code",
+          "expr": "sum by(agent_source)(count_over_time({service_name=\"claude-code\"} | event_name=\"subagent_completed\" [$__range]))",
+          "datasource": {
+            "type": "loki",
+            "uid": "loki-claude-code"
+          },
+          "queryType": "instant",
+          "instant": true,
+          "range": false,
+          "legendFormat": "{{agent_source}}"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "short",
+          "noValue": "无数据"
+        },
+        "overrides": []
+      },
+      "options": {
+        "pieType": "donut",
+        "legend": {
+          "displayMode": "table",
+          "placement": "right",
+          "values": [
+            "value",
+            "percent"
+          ]
+        },
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ]
+        }
+      }
+    },
+    {
+      "id": 11,
+      "type": "table",
+      "title": "Recent Subagent Completions (每次运行的 tokens / 工具数 / 耗时, 点 Prompt ID 看执行流程)",
+      "datasource": {
+        "type": "loki",
+        "uid": "loki-claude-code"
+      },
+      "description": "每次子代理完成一行,含该次运行消耗的 total_tokens、调用的工具数、耗时。这是现有页(Prometheus 聚合)看不到的 per-run 粒度。点 Prompt ID 跳 Trace。",
+      "gridPos": {
+        "h": 10,
+        "w": 24,
+        "x": 0,
+        "y": 21
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "editorMode": "code",
+          "expr": "{service_name=\"claude-code\"} | event_name=\"subagent_completed\" | line_format `{\"at\":{{printf \"%q\" (date \"01-02 15:04:05\" (unixToTime (printf \"%d\" (add 28800 (unixEpoch (toDate \"2006-01-02T15:04:05.000Z\" .event_timestamp))))))}},\"type\":{{printf \"%q\" .agent_type}},\"model\":{{printf \"%q\" .model}},\"tokens\":{{printf \"%q\" .total_tokens}},\"tools\":{{printf \"%q\" .total_tool_uses}},\"dur\":{{printf \"%q\" .duration_ms}},\"source\":{{printf \"%q\" .agent_source}},\"prompt_id\":{{printf \"%q\" .prompt_id}},\"process\":{{printf \"%q\" .process_pid}}}`",
+          "datasource": {
+            "type": "loki",
+            "uid": "loki-claude-code"
+          },
+          "queryType": "range",
+          "instant": false,
+          "range": true
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "custom": {
+            "align": "left"
+          }
+        },
+        "overrides": [
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "Tokens"
+            },
+            "properties": [
+              {
+                "id": "unit",
+                "value": "short"
+              },
+              {
+                "id": "custom.align",
+                "value": "right"
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "Duration"
+            },
+            "properties": [
+              {
+                "id": "unit",
+                "value": "ms"
+              },
+              {
+                "id": "custom.align",
+                "value": "right"
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "Prompt ID"
+            },
+            "properties": [
+              {
+                "id": "links",
+                "value": [
+                  {
+                    "title": "Trace (执行流程) →",
+                    "url": "/d/claude-code-trace/claude-code-prompt-trace?var-prompt_id=${__data.fields[\"Prompt ID\"]}&var-process=${__data.fields.Process}&${__url_time_range}"
+                  }
+                ]
+              }
+            ]
+          }
+        ]
+      },
+      "options": {
+        "showHeader": true,
+        "cellHeight": "sm",
+        "sortBy": [
+          {
+            "displayName": "At",
+            "desc": true
+          }
+        ]
+      },
+      "transformations": [
+        {
+          "id": "extractFields",
+          "options": {
+            "source": "Line",
+            "format": "json",
+            "replace": true,
+            "keepTime": true
+          }
+        },
+        {
+          "id": "convertFieldType",
+          "options": {
+            "conversions": [
+              {
+                "targetField": "tokens",
+                "destinationType": "number"
+              },
+              {
+                "targetField": "tools",
+                "destinationType": "number"
+              },
+              {
+                "targetField": "dur",
+                "destinationType": "number"
+              }
+            ]
+          }
+        },
+        {
+          "id": "organize",
+          "options": {
+            "excludeByName": {},
+            "indexByName": {
+              "at": 0,
+              "type": 1,
+              "model": 2,
+              "tokens": 3,
+              "tools": 4,
+              "dur": 5,
+              "source": 6,
+              "prompt_id": 7,
+              "process": 8
+            },
+            "renameByName": {
+              "at": "At",
+              "type": "Type",
+              "model": "Model",
+              "tokens": "Tokens",
+              "tools": "Tool Uses",
+              "dur": "Duration",
+              "source": "Source",
+              "prompt_id": "Prompt ID",
+              "process": "Process"
+            }
+          }
+        },
+        {
+          "id": "sortBy",
+          "options": {
+            "fields": {},
+            "sort": [
+              {
+                "field": "At",
+                "desc": true
+              }
+            ]
+          }
+        }
+      ]
     }
   ],
   "links": [

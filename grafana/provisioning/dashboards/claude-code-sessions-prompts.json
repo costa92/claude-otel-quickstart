@@ -80,11 +80,11 @@
       },
       "targets": [
         {
-          "expr": "sum(count_over_time({service_name=\"claude-code\"} | event_name=\"user_prompt\" | process_pid=~\"$process\" [1h]))",
+          "expr": "sum(count_over_time({service_name=\"claude-code\"} | event_name=\"user_prompt\" | process_pid=~\"$process\" [$__range]))",
           "refId": "A"
         }
       ],
-      "title": "Total User Prompts (1h)",
+      "title": "Total User Prompts (区间)",
       "type": "stat"
     },
     {
@@ -116,7 +116,7 @@
       },
       "targets": [
         {
-          "expr": "avg_over_time({service_name=\"claude-code\"} | event_name=\"user_prompt\" | process_pid=~\"$process\" | unwrap prompt_length [1h])",
+          "expr": "avg_over_time({service_name=\"claude-code\"} | event_name=\"user_prompt\" | process_pid=~\"$process\" | unwrap prompt_length [$__range])",
           "legendFormat": "avg",
           "refId": "A"
         }
@@ -154,12 +154,12 @@
       },
       "targets": [
         {
-          "expr": "topk(1, sum by (user_id) (count_over_time({service_name=\"claude-code\"} | event_name=\"user_prompt\" | process_pid=~\"$process\" [1h])))",
+          "expr": "topk(1, sum by (user_id) (count_over_time({service_name=\"claude-code\"} | event_name=\"user_prompt\" | process_pid=~\"$process\" [$__range])))",
           "legendFormat": "{{user_id}}",
           "refId": "A"
         }
       ],
-      "title": "Top User (1h, by prompts)",
+      "title": "Top User (区间, by prompts)",
       "type": "stat"
     },
     {
@@ -192,12 +192,12 @@
       },
       "targets": [
         {
-          "expr": "topk(1, sum by (process_pid) (count_over_time({service_name=\"claude-code\"} | event_name=\"user_prompt\" | process_pid=~\"$process\" [1h])))",
+          "expr": "topk(1, sum by (process_pid) (count_over_time({service_name=\"claude-code\"} | event_name=\"user_prompt\" | process_pid=~\"$process\" [$__range])))",
           "legendFormat": "{{process_pid}}",
           "refId": "A"
         }
       ],
-      "title": "Top Process (1h)",
+      "title": "Top Process (区间)",
       "type": "stat"
     },
     {
@@ -452,7 +452,7 @@
           "refId": "B"
         }
       ],
-      "title": "User Prompts (1h, only user_prompt rows)",
+      "title": "User Prompts (区间, only user_prompt rows)",
       "transformations": [
         {
           "id": "extractFields",
@@ -634,7 +634,7 @@
       },
       "targets": [
         {
-          "expr": "sum(sum_over_time({service_name=\"claude-code\"} | event_name=\"api_request\" | process_pid=~\"$process\" | unwrap input_tokens [1h]))",
+          "expr": "sum(sum_over_time({service_name=\"claude-code\"} | event_name=\"api_request\" | process_pid=~\"$process\" | unwrap input_tokens [$__range]))",
           "refId": "A"
         }
       ],
@@ -670,7 +670,7 @@
       },
       "targets": [
         {
-          "expr": "sum(sum_over_time({service_name=\"claude-code\"} | event_name=\"api_request\" | process_pid=~\"$process\" | unwrap output_tokens [1h]))",
+          "expr": "sum(sum_over_time({service_name=\"claude-code\"} | event_name=\"api_request\" | process_pid=~\"$process\" | unwrap output_tokens [$__range]))",
           "refId": "A"
         }
       ],
@@ -707,7 +707,7 @@
       },
       "targets": [
         {
-          "expr": "sum(sum_over_time({service_name=\"claude-code\"} | event_name=\"api_request\" | process_pid=~\"$process\" | unwrap cost_usd [1h]))",
+          "expr": "sum(sum_over_time({service_name=\"claude-code\"} | event_name=\"api_request\" | process_pid=~\"$process\" | unwrap cost_usd [$__range]))",
           "refId": "A"
         }
       ],
@@ -744,7 +744,7 @@
       },
       "targets": [
         {
-          "expr": "(sum(sum_over_time({service_name=\"claude-code\"} | event_name=\"api_request\" | process_pid=~\"$process\" | unwrap cost_usd [1h])) / sum(count_over_time({service_name=\"claude-code\"} | event_name=\"user_prompt\" | process_pid=~\"$process\" [1h])))",
+          "expr": "(sum(sum_over_time({service_name=\"claude-code\"} | event_name=\"api_request\" | process_pid=~\"$process\" | unwrap cost_usd [$__range])) / sum(count_over_time({service_name=\"claude-code\"} | event_name=\"user_prompt\" | process_pid=~\"$process\" [$__range])))",
           "refId": "A"
         }
       ],

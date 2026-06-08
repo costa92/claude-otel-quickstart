@@ -10,7 +10,7 @@
   "version": 1,
   "refresh": "10s",
   "time": {
-    "from": "now-1h",
+    "from": "now-7d",
     "to": "now"
   },
   "templating": {
@@ -235,7 +235,7 @@
       },
       "gridPos": {
         "x": 0,
-        "y": 5,
+        "y": 23,
         "w": 24,
         "h": 14
       },
@@ -255,6 +255,260 @@
         "prettifyLogMessage": true,
         "dedupStrategy": "none"
       }
+    },
+    {
+      "id": 6,
+      "type": "bargauge",
+      "title": "Skill 使用排行 (具体名, 来自 skill_activated)",
+      "datasource": {
+        "type": "loki",
+        "uid": "loki-claude-code"
+      },
+      "description": "真实 skill_name(含 plugin:skill 全名)。这是唯一能看到具体用了哪个 skill 的数据源 —— tool_result 不带 skill 名。",
+      "gridPos": {
+        "h": 8,
+        "w": 12,
+        "x": 0,
+        "y": 5
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "editorMode": "code",
+          "expr": "topk(15, sum by(skill_name)(count_over_time({service_name=\"claude-code\"} | event_name=\"skill_activated\" [$__range])))",
+          "datasource": {
+            "type": "loki",
+            "uid": "loki-claude-code"
+          },
+          "queryType": "instant",
+          "instant": true,
+          "range": false,
+          "legendFormat": "{{skill_name}}"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "short",
+          "color": {
+            "mode": "continuous-GrYlRd"
+          },
+          "noValue": "区间内无 skill 激活(skill 较稀疏,试着把时间拉到 7d/30d)"
+        },
+        "overrides": []
+      },
+      "options": {
+        "displayMode": "gradient",
+        "orientation": "horizontal",
+        "showUnfilled": true,
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ]
+        }
+      }
+    },
+    {
+      "id": 7,
+      "type": "piechart",
+      "title": "Skill 来源分布 (skill_source)",
+      "datasource": {
+        "type": "loki",
+        "uid": "loki-claude-code"
+      },
+      "description": "plugin / userSettings / project 等。看大家用的是插件市场的 skill 还是自建。",
+      "gridPos": {
+        "h": 8,
+        "w": 6,
+        "x": 12,
+        "y": 5
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "editorMode": "code",
+          "expr": "sum by(skill_source)(count_over_time({service_name=\"claude-code\"} | event_name=\"skill_activated\" [$__range]))",
+          "datasource": {
+            "type": "loki",
+            "uid": "loki-claude-code"
+          },
+          "queryType": "instant",
+          "instant": true,
+          "range": false,
+          "legendFormat": "{{skill_source}}"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "short",
+          "noValue": "无数据"
+        },
+        "overrides": []
+      },
+      "options": {
+        "pieType": "donut",
+        "legend": {
+          "displayMode": "table",
+          "placement": "right",
+          "values": [
+            "value",
+            "percent"
+          ]
+        },
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ]
+        }
+      }
+    },
+    {
+      "id": 8,
+      "type": "piechart",
+      "title": "Skill 触发方式 (invocation_trigger)",
+      "datasource": {
+        "type": "loki",
+        "uid": "loki-claude-code"
+      },
+      "description": "user-slash(用户 /命令) / nested-skill(技能内调技能) / 自动 等触发来源占比。",
+      "gridPos": {
+        "h": 8,
+        "w": 6,
+        "x": 18,
+        "y": 5
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "editorMode": "code",
+          "expr": "sum by(invocation_trigger)(count_over_time({service_name=\"claude-code\"} | event_name=\"skill_activated\" [$__range]))",
+          "datasource": {
+            "type": "loki",
+            "uid": "loki-claude-code"
+          },
+          "queryType": "instant",
+          "instant": true,
+          "range": false,
+          "legendFormat": "{{invocation_trigger}}"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "short",
+          "noValue": "无数据"
+        },
+        "overrides": []
+      },
+      "options": {
+        "pieType": "donut",
+        "legend": {
+          "displayMode": "table",
+          "placement": "right",
+          "values": [
+            "value",
+            "percent"
+          ]
+        },
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ]
+        }
+      }
+    },
+    {
+      "id": 9,
+      "type": "table",
+      "title": "Recent Skill Activations (含 skill 名 / 来源 / 触发, 点 Prompt ID 看执行流程)",
+      "datasource": {
+        "type": "loki",
+        "uid": "loki-claude-code"
+      },
+      "description": "每次 skill_activated 一行,含具体 skill 名。点 Prompt ID 跳 Trace 看该 skill 在哪条 prompt 的执行流程里被触发。",
+      "gridPos": {
+        "h": 10,
+        "w": 24,
+        "x": 0,
+        "y": 13
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "editorMode": "code",
+          "expr": "{service_name=\"claude-code\"} | event_name=\"skill_activated\" | line_format `{\"at\":{{printf \"%q\" (date \"01-02 15:04:05\" (unixToTime (printf \"%d\" (add 28800 (unixEpoch (toDate \"2006-01-02T15:04:05.000Z\" .event_timestamp))))))}},\"skill\":{{printf \"%q\" .skill_name}},\"source\":{{printf \"%q\" .skill_source}},\"trigger\":{{printf \"%q\" .invocation_trigger}},\"scope\":{{printf \"%q\" .scope_name}},\"prompt_id\":{{printf \"%q\" .prompt_id}},\"process\":{{printf \"%q\" .process_pid}}}`",
+          "datasource": {
+            "type": "loki",
+            "uid": "loki-claude-code"
+          },
+          "queryType": "range",
+          "instant": false,
+          "range": true
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "custom": {
+            "align": "left"
+          }
+        },
+        "overrides": [
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "Prompt ID"
+            },
+            "properties": [
+              {
+                "id": "links",
+                "value": [
+                  {
+                    "title": "Trace (执行流程) →",
+                    "url": "/d/claude-code-trace/claude-code-prompt-trace?var-prompt_id=${__data.fields[\"Prompt ID\"]}&var-process=${__data.fields.Process}&${__url_time_range}"
+                  }
+                ]
+              }
+            ]
+          }
+        ]
+      },
+      "options": {
+        "showHeader": true,
+        "cellHeight": "sm"
+      },
+      "transformations": [
+        {
+          "id": "extractFields",
+          "options": {
+            "source": "Line",
+            "format": "json",
+            "replace": true,
+            "keepTime": true
+          }
+        },
+        {
+          "id": "organize",
+          "options": {
+            "excludeByName": {},
+            "indexByName": {
+              "at": 0,
+              "skill": 1,
+              "source": 2,
+              "trigger": 3,
+              "scope": 4,
+              "prompt_id": 5,
+              "process": 6
+            },
+            "renameByName": {
+              "at": "At",
+              "skill": "Skill",
+              "source": "Source",
+              "trigger": "Trigger",
+              "scope": "Scope",
+              "prompt_id": "Prompt ID",
+              "process": "Process"
+            }
+          }
+        }
+      ]
     }
   ],
   "links": [

@@ -44,7 +44,7 @@
       "gridPos": {
         "x": 0,
         "y": 0,
-        "w": 6,
+        "w": 4,
         "h": 5
       },
       "targets": [
@@ -99,9 +99,9 @@
         "uid": "prom-claude-code"
       },
       "gridPos": {
-        "x": 6,
+        "x": 4,
         "y": 0,
-        "w": 6,
+        "w": 4,
         "h": 5
       },
       "targets": [
@@ -134,9 +134,9 @@
         "uid": "prom-claude-code"
       },
       "gridPos": {
-        "x": 12,
+        "x": 8,
         "y": 0,
-        "w": 6,
+        "w": 4,
         "h": 5
       },
       "targets": [
@@ -169,9 +169,9 @@
         "uid": "prom-claude-code"
       },
       "gridPos": {
-        "x": 18,
+        "x": 12,
         "y": 0,
-        "w": 6,
+        "w": 4,
         "h": 5
       },
       "targets": [
@@ -386,7 +386,7 @@
       "id": 10,
       "type": "bargauge",
       "title": "MCP Server Call Frequency (from Loki logs)",
-      "description": "MCP 调用频率,按 server 分组。来自 Loki mcp_server_connection 事件的 server_name label",
+      "description": "MCP 调用频率,按 server 分组。来自 Loki mcp_server_connection 事件的 server_name label (已过滤空 server_name)",
       "datasource": {
         "type": "loki",
         "uid": "loki-claude-code"
@@ -400,7 +400,7 @@
       "targets": [
         {
           "refId": "A",
-          "expr": "sum by (server_name) (count_over_time({service_name=\"claude-code\"} |= `mcp_server_connection` [1h]))",
+          "expr": "sum by (server_name) (count_over_time({service_name=\"claude-code\"} | event_name=\"mcp_server_connection\" | server_name!=\"\" [$__range]))",
           "legendFormat": "{{server_name}}"
         }
       ],
@@ -426,8 +426,8 @@
     {
       "id": 11,
       "type": "logs",
-      "title": "Recent MCP Tool Calls (raw stream)",
-      "description": "最近 MCP 调用的原始事件流(server + tool_name + 用时等)",
+      "title": "Recent MCP Connections (server / 状态 / transport)",
+      "description": "最近的 MCP 服务器连接事件,含 connected/failed/disconnected 状态。原\"Recent MCP Tool Calls\"用 mcp_tool 几乎无数据,改为连接流以在概览直接暴露连接失败。",
       "datasource": {
         "type": "loki",
         "uid": "loki-claude-code"
@@ -441,7 +441,7 @@
       "targets": [
         {
           "refId": "A",
-          "expr": "{service_name=\"claude-code\"} | event_name=\"tool_result\" | tool_name=\"mcp_tool\" | line_format `{{ .tool_name }} -> ok={{ .success }} dur={{ .duration_ms }}ms`"
+          "expr": "{service_name=\"claude-code\"} | event_name=\"mcp_server_connection\" | line_format `{{.server_name}} | {{.status}} | {{.transport_type}} | scope={{.server_scope}} | {{.duration_ms}}ms`"
         }
       ],
       "options": {
@@ -449,6 +449,121 @@
         "showLabels": false,
         "sortOrder": "Descending",
         "wrapLogMessage": true
+      }
+    },
+    {
+      "id": 12,
+      "type": "stat",
+      "title": "Commits (累计)",
+      "datasource": {
+        "type": "prometheus",
+        "uid": "prom-claude-code"
+      },
+      "description": "Claude 代为 git commit 的累计次数(claude_code_commit_count_total,OTLP 累计 counter)。",
+      "gridPos": {
+        "h": 5,
+        "w": 4,
+        "x": 16,
+        "y": 0
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "expr": "sum(last_over_time(claude_code_commit_count_total[$__range]))",
+          "datasource": {
+            "type": "prometheus",
+            "uid": "prom-claude-code"
+          }
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "short",
+          "noValue": "0",
+          "color": {
+            "mode": "fixed",
+            "fixedColor": "purple"
+          }
+        },
+        "overrides": []
+      },
+      "options": {
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ]
+        },
+        "colorMode": "value",
+        "graphMode": "none",
+        "textMode": "value"
+      }
+    },
+    {
+      "id": 13,
+      "type": "stat",
+      "title": "工具失败率 (区间)",
+      "datasource": {
+        "type": "loki",
+        "uid": "loki-claude-code"
+      },
+      "description": "tool_result 中 success=false 占比。>0 说明有工具执行失败需关注。api_error(API层失败)当前无数据,发生时另见 Trace。",
+      "gridPos": {
+        "h": 5,
+        "w": 4,
+        "x": 20,
+        "y": 0
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "editorMode": "code",
+          "datasource": {
+            "type": "loki",
+            "uid": "loki-claude-code"
+          },
+          "queryType": "instant",
+          "instant": true,
+          "range": false,
+          "expr": "sum(count_over_time({service_name=\"claude-code\"} | event_name=\"tool_result\" | success=\"false\" [$__range])) / sum(count_over_time({service_name=\"claude-code\"} | event_name=\"tool_result\" [$__range]))"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "percentunit",
+          "decimals": 1,
+          "noValue": "0",
+          "color": {
+            "mode": "thresholds"
+          },
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": null
+              },
+              {
+                "color": "orange",
+                "value": 0.05
+              },
+              {
+                "color": "red",
+                "value": 0.2
+              }
+            ]
+          }
+        },
+        "overrides": []
+      },
+      "options": {
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ]
+        },
+        "colorMode": "value",
+        "graphMode": "none",
+        "textMode": "value"
       }
     }
   ],
